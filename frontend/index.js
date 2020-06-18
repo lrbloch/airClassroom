@@ -1,10 +1,13 @@
 
 import { initializeBlock, useBase, useRecords, Loader, Button, Box } from '@airtable/blocks/ui';
 import React, { Fragment, useState } from 'react';
+import {FieldType} from '@airtable/blocks/models';
 const credentials = require('../../../../../credentials.json')
 
 // These values match the base for this example: https://airtable.com/shrIho8SB7RhrlUQL
 const TABLE_NAME = 'Table 1';
+const COURSE_TABLE_NAME = 'Courses';
+// const TITLE_FIELD_NAME = 'Courses';
 
 // Airtable SDK limit: we can only update 50 records at a time. For more details, see
 // https://github.com/Airtable/blocks/blob/master/packages/sdk/docs/guide_writes.md#size-limits--rate-limits
@@ -24,7 +27,7 @@ var SCOPES =
     "https://www.googleapis.com/auth/classroom.coursework.me " +
     "https://www.googleapis.com/auth/classroom.topics";
 
-export var courseList = [];
+export var newCourseList = [];
 export var topicList = [];
 export var assignmentList = [];
 
@@ -51,20 +54,16 @@ function initClient() {
             scope: SCOPES
         }).then(function () {
             // Listen for sign-in state changes.
-            gapi.auth2.getAuthInstance().signOut().then(function(){
-                gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-    
-                    // Handle the initial sign-in state.
-                    updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-                    authorizeButton.onclick = handleAuthClick;
-                    signoutButton.onclick = handleSignoutClick;
-                }, function (error) {
-                    appendPre(JSON.stringify(error, null, 2));
-                });
+            gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+                // Handle the initial sign-in state.
+                updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+                authorizeButton.onclick = handleAuthClick;
+                signoutButton.onclick = handleSignoutClick;
+            }, function (error) {
+                appendPre(JSON.stringify(error, null, 2));
             });
     }
 }
-
 /**
  *  Called when the signed in status changes, to update the UI
  *  appropriately. After a sign-in, the API is called.
@@ -75,7 +74,6 @@ function updateSigninStatus(isSignedIn) {
     if (isSignedIn) {
         authorizeButton.style.display = 'none';
         signoutButton.style.display = 'block';
-        listCourses();
     } else {
         authorizeButton.style.display = 'block';
         signoutButton.style.display = 'none';
@@ -101,34 +99,166 @@ function HelloWorldBlock() {
     const base = useBase();
     const table = base.getTableByName(TABLE_NAME);
     const records = useRecords(table);
+    //const titleField = table.getFieldByName(TITLE_FIELD_NAME);
+
+    // load the records ready to be updated
+    // we only need to load the word field - the others don't get read, only written to.
+    //const records = useRecords(table, {fields: [titleField]});
+
+    // keep track of whether we have up update currently in progress - if there is, we want to hide
+    // the update button so you can't have two updates running at once.
+    const [isUpdateInProgress, setIsUpdateInProgress] = useState(false);
+
+    // check whether we have permission to update our records or not. Any time we do a permissions
+    // check like this, we can pass in undefined for values we don't yet know. Here, as we want to
+    // make sure we can update the summary and image fields, we make sure to include them even
+    // though we don't know the values we want to use for them yet.
+    // const permissionCheck = table.checkPermissionsForUpdateRecord(undefined, {
+    //     [EXTRACT_FIELD_NAME]: undefined,
+    //     [IMAGE_FIELD_NAME]: undefined,
+    // });
+
+    async function onButtonClick() {
+        setIsUpdateInProgress(true);
+        await getCourses()
+        setIsUpdateInProgress(false);    
+    }
+
+    async function createOrUpdateCourseTable(newCourseList) {
+        console.log("CREATE OR UPDATE - course list: " + newCourseList);
+        let courseTable = await createCourseTableIfNotExists();
+        if(courseTable != null)
+        {
+            console.log("creating records");
+            // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
+            let i = 0;
+            while (i < newCourseList?.length) {
+                console.log("i = " + i);
+                const createBatch = newCourseList.slice(i, i + MAX_RECORDS_PER_UPDATE);
+                // await is used to wait for the update to finish saving to Airtable servers before
+                // continuing. This means we'll stay under the rate limit for writes.
+                const recordIds = await courseTable.createRecordsAsync(createBatch);
+                console.log(`new records created with ID: ${recordIds}`);
+                i += MAX_RECORDS_PER_UPDATE;
+            }
+        }
+        
+    }
+
+    async function createCourseTableIfNotExists() {
+        let courseTable = base.getTableByNameIfExists(COURSE_TABLE_NAME);
+        if (courseTable == null) {
+            const name = COURSE_TABLE_NAME;
+            const fields = [
+                // Name will be the primary field of the table.
+                { name: 'Course Name', type: FieldType.SINGLE_LINE_TEXT },
+                { name: 'CourseId', type: FieldType.SINGLE_LINE_TEXT },
+                { name: 'Section', type: FieldType.SINGLE_LINE_TEXT },
+                { name: 'DescriptionHeading', type: FieldType.SINGLE_LINE_TEXT },
+                { name: 'Description', type: FieldType.SINGLE_LINE_TEXT },
+                { name: 'Room', type: FieldType.SINGLE_LINE_TEXT },
+                {
+                    name: 'CourseState', type: FieldType.SINGLE_SELECT, options: {
+                        choices: [
+                            { name: "COURSE_STATE_UNSPECIFIED" },
+                            { name: "ACTIVE" },
+                            { name: "ARCHIVED" },
+                            { name: "PROVISIONED" },
+                            { name: "DECLINED" },
+                            { name: "SUSPENDED" }
+                        ]
+                    }
+                },
+                { name: 'alternateLink', type: FieldType.URL },
+            ];
+            console.log("creating course table");
+            if (base.unstable_hasPermissionToCreateTable(name, fields)) {
+                courseTable = await base.unstable_createTableAsync(name, fields);
+            }
+        }
+        return courseTable;
+    }
+
+    async function getCourses() {
+        const newCourseList = [];
+        gapi.client.classroom.courses.list().then(async function (response) {
+            var courses = response.result.courses;
+            if (courses?.length > 0) {
+                for (var i = 0; i < courses.length; i++) {
+                    var course = courses[i];
+                    var courseId = course.id;
+                    var courseRecord = {
+                        fields: {
+                            'Course Name': course.name,
+                            'CourseId': course.id,
+                            'Section': course.section,
+                            'DescriptionHeading': course.descriptionHeading,
+                            'Description': course.description,
+                            'Room': course.room,
+                            'CourseState': {name: course.courseState},
+                            'alternateLink': course.alternateLink
+                        }
+                    };
+                    console.log("course state: " + JSON.stringify(course.courseState));
+                    newCourseList.push(courseRecord);
+                    //listCourseWork(courseId);
+                    //listCourseTopics(courseId);
+                    // out of respect for the API, we wait a short time
+                    // between making requests. If you change this example to use a different API, you might
+                    // not need this.
+                    await delayAsync(50);
+                }
+            }
+            else {
+                console.log("no courses found");
+            }
+            console.log("newCourseList created: " + JSON.stringify(newCourseList));
+            createOrUpdateCourseTable(newCourseList);
+        });
+    }
+    
+    
+    function delayAsync(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
     return (
-        <SyncClass table={table} records={records} />
+        <Box
+        // center the button/loading spinner horizontally and vertically.
+        position="absolute"
+        top="0"
+        bottom="0"
+        left="0"
+        right="0"
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        >
+            {isUpdateInProgress ? (
+                <Loader />
+            ) : (
+                <Fragment>
+                    <AuthClass/>
+                    <Button
+                        variant="primary"
+                        onClick={onButtonClick}
+                        marginBottom={3}
+                    >
+                        Sync with Google Classroom
+                    </Button>
+                    {/* {!permissionCheck.hasPermission &&
+                        // when we don't have permission to perform the update, we want to tell the
+                        // user why. `reasonDisplayString` is a human-readable string that will
+                        // explain why the button is disabled.
+                        permissionCheck.reasonDisplayString} */}
+                 </Fragment>
+            )}
+        </Box>
     );
 
 }
 
-/**
- * Append a pre element to the body containing the given message
- * as its text node. Used to display the results of the API call.
- *
- * @param {string} message Text to be placed in pre element.
- */
-function appendPre(message) {
-    var pre = document.getElementById('content');
-    var textContent = document.createTextNode(message + '\n');
-    pre.appendChild(textContent);
-}
-/**
- * Clear the body containing the given message
- * as its text node. Used to display the results of the API call.
- *
- */
-function clearBody() {
-    var pre = document.getElementById('content');
-    var pre = document.getElementById('content');
-    pre.innerHTML = '';
-}
 /**
  * Print the names of the first 10 courses the user has access to. If
  * no courses are found an appropriate message is printed.
@@ -143,7 +273,17 @@ function listCourses() {
                 var course = courses[i];
                 appendPre(course.name);
                 var courseId = course.id;
-                courseList.push(course);
+                var courseRecord = {
+                    'Course Name': course.name,
+                    'CourseId': course.id,
+                    'Section': course.section,
+                    'DescriptionHeading': course.descriptionHeading,
+                    'Description': course.description,
+                    'Room': course.room,
+                    'CourseState': {name: course.courseState.name},
+                    'alternateLink': course.alternateLink
+                };
+                newCourseList.push(courseRecord);
                 listCourseWork(courseId);
                 listCourseTopics(courseId);
             }
@@ -153,9 +293,6 @@ function listCourses() {
             appendPre('No courses found.');
         }
     });
-
-    //write courses to database
-    //createOrUpdateCourseTable(courses);
 }
 
 /**
@@ -187,6 +324,7 @@ function listCourseWork(id) {
         }
     });
 }
+
 function listCourseTopics(id) {
     gapi.client.classroom.courses.topics.list({
         courseId: id
@@ -206,6 +344,29 @@ function listCourseTopics(id) {
     });
 }
 
+
+/**
+ * Append a pre element to the body containing the given message
+ * as its text node. Used to display the results of the API call.
+ *
+ * @param {string} message Text to be placed in pre element.
+ */
+function appendPre(message) {
+    var pre = document.getElementById('content');
+    var textContent = document.createTextNode(message + '\n');
+    pre.appendChild(textContent);
+}
+/**
+ * Clear the body containing the given message
+ * as its text node. Used to display the results of the API call.
+ *
+ */
+function clearBody() {
+    var pre = document.getElementById('content');
+    var pre = document.getElementById('content');
+    pre.innerHTML = '';
+}
+
 function load_script(src) {
     return new Promise(function (resolve, reject) {
         var script = document.createElement('script');
@@ -222,19 +383,39 @@ function load_script(src) {
 };
 
 // Promise Interface can ensure load the script only once.
-var gapi_script = load_script('https://apis.google.com/js/api.js');
+var gapi_script = load_script(GOOGLE_API_ENDPOINT);
 
 initializeBlock(() => <HelloWorldBlock />);
 
-class SyncClass extends React.Component {
+class AuthClass extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             status: 'start'
+            // base: props.base
         };
+        
+        // This binding is necessary to make `this` work in the callback
+        //this.handleAuthClick = this.handleAuthClick.bind(this);
+        //this.handleSignoutClick = this.handleSignoutClick.bind(this);
     }
 
-    do_load = () => {
+    /**
+     *  Sign in the user upon button click.
+     */
+    handleAuthClick() {
+        gapi.auth2.getAuthInstance().signIn();
+    }
+
+    /**
+     *  Sign out the user upon button click.
+     */
+    handleSignoutClick() {
+        gapi.auth2.getAuthInstance().signOut();
+        clearBody();
+    }
+
+    do_load() {
         var self = this;
         gapi_script.then(function () {
             self.setState({ 'status': 'done' });
@@ -254,6 +435,8 @@ class SyncClass extends React.Component {
 
         return (
             <>
+                {/* <button id="authorize_button" style={{ display: "none" }} onClick={this.handleAuthClick}>Authorize</button>
+                <button id="signout_button" style={{ display: "none" }} onClick={this.handleSignoutClick}>Sign Out</button> */}
                 <button id="authorize_button" style={{ display: "none" }}>Authorize</button>
                 <button id="signout_button" style={{ display: "none" }}>Sign Out</button>
                 <pre id="content" style={{ "whiteSpace": "pre-wrap" }}></pre>
