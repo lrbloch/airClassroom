@@ -12,7 +12,7 @@ const IMAGE_FIELD_NAME = 'Attachments';
 // Airtable SDK limit: we can only update 50 records at a time. For more details, see
 // https://github.com/Airtable/blocks/blob/master/packages/sdk/docs/guide_writes.md#size-limits--rate-limits
 const MAX_RECORDS_PER_UPDATE = 50;
-const API_ENDPOINT = 'https://apis.google.com/js/api.js';
+const GOOGLE_API_ENDPOINT = 'https://apis.google.com/js/api.js';
 //   // Client ID and API key from the Developer Console
 var CLIENT_ID = credentials.CLIENT_ID;
 var API_KEY = credentials.API_KEY;
@@ -22,7 +22,9 @@ var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/classroom/v1
 
 //   // Authorization scopes required by the API; multiple scopes can be
 //   // included, separated by spaces.
-var SCOPES = "https://www.googleapis.com/auth/classroom.coursework.students " + "https://www.googleapis.com/auth/classroom.coursework.me " +
+var SCOPES = 
+    "https://www.googleapis.com/auth/classroom.coursework.students " + 
+    "https://www.googleapis.com/auth/classroom.coursework.me " +
     "https://www.googleapis.com/auth/classroom.topics";
 
 /**
@@ -92,18 +94,18 @@ function handleSignoutClick(event) {
     gapi.auth2.getAuthInstance().signOut();
     clearBody();
 }
-function HelloWorldBlock() {
+function SyncWithGoogleClassroom() {
     const base = useBase();
     const table = base.getTableByName('Table 1');
     const records = useRecords(table);
 
     return (
-        <MyClass table={table} records={records} />
+        <SyncClass table={table} records={records} />
     );
 
 }
 
-function new_script(src) {
+function load_script(src) {
     return new Promise(function (resolve, reject) {
         var script = document.createElement('script');
         script.src = src;
@@ -118,7 +120,7 @@ function new_script(src) {
     })
 };
 // Promise Interface can ensure load the script only once.
-var my_script = new_script('https://apis.google.com/js/api.js');
+var gapi_script = load_script(GOOGLE_API_ENDPOINT);
 
 /**
  * Append a pre element to the body containing the given message
@@ -215,10 +217,10 @@ function listCourseTopics(id) {
     });
 }
 
-initializeBlock(() => <HelloWorldBlock />);
+initializeBlock(() => <SyncWithGoogleClassroom />);
 
 
-class MyClass extends React.Component {
+class SyncClass extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -228,7 +230,7 @@ class MyClass extends React.Component {
 
     do_load = () => {
         var self = this;
-        my_script.then(function () {
+        gapi_script.then(function () {
             self.setState({ 'status': 'done' });
         }).catch(function () {
             self.setState({ 'status': 'error' });
