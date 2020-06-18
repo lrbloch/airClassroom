@@ -97,8 +97,10 @@ function handleSignoutClick(event) {
 
 function HelloWorldBlock() {
     const base = useBase();
+
     const table = base.getTableByName(TABLE_NAME);
     const records = useRecords(table);
+
     //const titleField = table.getFieldByName(TITLE_FIELD_NAME);
 
     // load the records ready to be updated
@@ -124,9 +126,9 @@ function HelloWorldBlock() {
         setIsUpdateInProgress(false);    
     }
 
-    async function createOrUpdateCourseTable(newCourseList) {
+    async function createOrUpdateCourseTable(newCourseList){ //, courseTable) {
+        let courseTable =  await createCourseTableIfNotExists();
         console.log("CREATE OR UPDATE - course list: " + newCourseList);
-        let courseTable = await createCourseTableIfNotExists();
         if(courseTable != null)
         {
             console.log("creating records");
@@ -150,9 +152,13 @@ function HelloWorldBlock() {
         if (courseTable == null) {
             const name = COURSE_TABLE_NAME;
             const fields = [
-                // Name will be the primary field of the table.
+                // CourseId will be the primary field of the table.
+                { name: 'CourseId', type: FieldType.NUMBER, 
+                    options: {
+                        precision: 0, // from 0 to 8 inclusive
+                    }
+                },
                 { name: 'Course Name', type: FieldType.SINGLE_LINE_TEXT },
-                { name: 'CourseId', type: FieldType.SINGLE_LINE_TEXT },
                 { name: 'Section', type: FieldType.SINGLE_LINE_TEXT },
                 { name: 'DescriptionHeading', type: FieldType.SINGLE_LINE_TEXT },
                 { name: 'Description', type: FieldType.SINGLE_LINE_TEXT },
@@ -169,7 +175,7 @@ function HelloWorldBlock() {
                         ]
                     }
                 },
-                { name: 'alternateLink', type: FieldType.URL },
+                { name: 'Link to Class', type: FieldType.URL },
             ];
             console.log("creating course table");
             if (base.unstable_hasPermissionToCreateTable(name, fields)) {
@@ -187,20 +193,28 @@ function HelloWorldBlock() {
                 for (var i = 0; i < courses.length; i++) {
                     var course = courses[i];
                     var courseId = course.id;
+                    console.log("course ID: " + courseId);
                     var courseRecord = {
                         fields: {
+                            'CourseId': parseInt(course.id),
                             'Course Name': course.name,
-                            'CourseId': course.id,
                             'Section': course.section,
                             'DescriptionHeading': course.descriptionHeading,
                             'Description': course.description,
                             'Room': course.room,
                             'CourseState': {name: course.courseState},
-                            'alternateLink': course.alternateLink
+                            'Link to Class': course.alternateLink
                         }
                     };
+                    
                     console.log("course state: " + JSON.stringify(course.courseState));
-                    newCourseList.push(courseRecord);
+                    //console.log("courseRecords[0]: " + JSON.stringify(courseRecords[0].fields));
+                    // if(typeof(courseRecords.find(record => record.fields.CourseId === courseRecord.fields.CourseId)) === typeof(undefined))
+                    // {
+                    //     console.log("record doesn't exist yet");
+                         newCourseList.push(courseRecord);
+                    // }
+                    
                     //listCourseWork(courseId);
                     //listCourseTopics(courseId);
                     // out of respect for the API, we wait a short time
@@ -213,7 +227,7 @@ function HelloWorldBlock() {
                 console.log("no courses found");
             }
             console.log("newCourseList created: " + JSON.stringify(newCourseList));
-            createOrUpdateCourseTable(newCourseList);
+            createOrUpdateCourseTable(newCourseList);//, courseTable);
         });
     }
     
@@ -273,19 +287,20 @@ function listCourses() {
                 var course = courses[i];
                 appendPre(course.name);
                 var courseId = course.id;
-                var courseRecord = {
-                    'Course Name': course.name,
-                    'CourseId': course.id,
-                    'Section': course.section,
-                    'DescriptionHeading': course.descriptionHeading,
-                    'Description': course.description,
-                    'Room': course.room,
-                    'CourseState': {name: course.courseState.name},
-                    'alternateLink': course.alternateLink
-                };
-                newCourseList.push(courseRecord);
-                listCourseWork(courseId);
-                listCourseTopics(courseId);
+                console.log("course ID: " + courseId);
+                // var courseRecord = {
+                //     'Course Name': course.name,
+                //     'CourseId': course.id,
+                //     'Section': course.section,
+                //     'DescriptionHeading': course.descriptionHeading,
+                //     'Description': course.description,
+                //     'Room': course.room,
+                //     'CourseState': {name: course.courseState.name},
+                //     'alternateLink': course.alternateLink
+                // };
+                // newCourseList.push(courseRecord);
+                // listCourseWork(courseId);
+                // listCourseTopics(courseId);
             }
         }
         else {
@@ -392,7 +407,7 @@ class AuthClass extends React.Component {
         super(props);
         this.state = {
             status: 'start'
-            // base: props.base
+            //base: props.base
         };
         
         // This binding is necessary to make `this` work in the callback
