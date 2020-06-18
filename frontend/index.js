@@ -126,11 +126,10 @@ function HelloWorldBlock() {
         setIsUpdateInProgress(false);    
     }
 
-    async function createOrUpdateCourseTable(newCourseList, courseTable) {
+    async function createOrUpdateCourseTable(newCourseList, updateCourseList, courseTable) {
         console.log("CREATE OR UPDATE - course list: " + newCourseList);
         if(courseTable != null)
         {
-            console.log("creating records");
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
             let i = 0;
             while (i < newCourseList?.length) {
@@ -141,6 +140,19 @@ function HelloWorldBlock() {
                 const recordIds = await courseTable.createRecordsAsync(createBatch);
                 console.log(`new records created with ID: ${recordIds}`);
                 i += MAX_RECORDS_PER_UPDATE;
+            }
+
+            // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
+            let j = 0;
+            while (j < updateCourseList?.length) {
+                const updateBatch = updateCourseList.slice(j, j + MAX_RECORDS_PER_UPDATE);
+                // await is used to wait for the update to finish saving to Airtable servers before
+                // continuing. This means we'll stay under the rate limit for writes.
+                if (courseTable.hasPermissionToUpdateRecords(updateBatch)) {
+                    await courseTable.updateRecordsAsync(updateBatch);
+                }
+                // Record updates have been saved to Airtable servers.
+                j += MAX_RECORDS_PER_UPDATE;
             }
         }
         
@@ -184,6 +196,17 @@ function HelloWorldBlock() {
         return courseTable;
     }
 
+    function coursesAreNotEqual(existingRecord, courseRecord){
+        return (existingRecord.getCellValue("CourseId") != courseRecord.fields.CourseId)
+        || (existingRecord.getCellValue("Course Name") != courseRecord.fields["Course Name"])
+        || (existingRecord.getCellValue("Section") != courseRecord.fields.Section)
+        || (existingRecord.getCellValue("DescriptionHeading") != courseRecord.fields.DescriptionHeading)
+        || (existingRecord.getCellValue("Description") != courseRecord.fields.Description)
+        || (existingRecord.getCellValue("Room") != courseRecord.fields.Room)
+        || (existingRecord.getCellValue("CourseState").name != courseRecord.fields.CourseState.name)
+        || (existingRecord.getCellValue("Link to Class") != courseRecord.fields["Link to Class"])
+    }
+
     async function getCourses() {
         createCourseTableIfNotExists().then(async function (courseTable)
         {
@@ -210,8 +233,7 @@ function HelloWorldBlock() {
                                 'Link to Class': course.alternateLink
                             }
                         };
-                        
-                        console.log("course state: " + JSON.stringify(course.courseState));
+
                         var existingRecord = query.records.find(record => record.getCellValue("CourseId") === courseRecord.fields.CourseId);
                         if(typeof(existingRecord) === typeof(undefined))
                         {
@@ -220,18 +242,16 @@ function HelloWorldBlock() {
                         }
                         else{
                             console.log("record already exists");
-                            //TODO: FIX
-                            if((existingRecord.getCellValue("CourseId") != courseRecord.fields.CourseId)
-                            || (existingRecord.getCellValue("Course Name") != courseRecord.fields.CourseName)
-                            || (existingRecord.getCellValue("Section") != courseRecord.fields.Section)
-                            || (existingRecord.getCellValue("DescriptionHeading") != courseRecord.fields.DescriptionHeading)
-                            || (existingRecord.getCellValue("Description") != courseRecord.fields.Description)
-                            || (existingRecord.getCellValue("Room") != courseRecord.fields.Room)
-                            || (existingRecord.getCellValue("CourseState") != courseRecord.fields.CourseState)
-                            || (existingRecord.getCellValue("Link to Class") != courseRecord.fields.LinkToClass))
+
+                            if(coursesAreNotEqual(existingRecord,courseRecord))
                             {
                                 console.log("at least one field is different");
+                                courseRecord.id = existingRecord.id;
+                                console.log("courseRecord: " + JSON.stringify(courseRecord));
                                 updateCourseList.push(courseRecord);
+                            }
+                            else {
+                                console.log("courses are equal");
                             }
                         }
                         
@@ -248,7 +268,7 @@ function HelloWorldBlock() {
                     console.log("no courses found");
                 }
                 console.log("newCourseList created: " + JSON.stringify(newCourseList));
-                createOrUpdateCourseTable(newCourseList, courseTable);
+                createOrUpdateCourseTable(newCourseList, updateCourseList, courseTable);
             });
         });
     }
