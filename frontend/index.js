@@ -126,8 +126,7 @@ function HelloWorldBlock() {
         setIsUpdateInProgress(false);    
     }
 
-    async function createOrUpdateCourseTable(newCourseList){ //, courseTable) {
-        let courseTable =  await createCourseTableIfNotExists();
+    async function createOrUpdateCourseTable(newCourseList, courseTable) {
         console.log("CREATE OR UPDATE - course list: " + newCourseList);
         if(courseTable != null)
         {
@@ -186,48 +185,71 @@ function HelloWorldBlock() {
     }
 
     async function getCourses() {
-        const newCourseList = [];
-        gapi.client.classroom.courses.list().then(async function (response) {
-            var courses = response.result.courses;
-            if (courses?.length > 0) {
-                for (var i = 0; i < courses.length; i++) {
-                    var course = courses[i];
-                    var courseId = course.id;
-                    console.log("course ID: " + courseId);
-                    var courseRecord = {
-                        fields: {
-                            'CourseId': parseInt(course.id),
-                            'Course Name': course.name,
-                            'Section': course.section,
-                            'DescriptionHeading': course.descriptionHeading,
-                            'Description': course.description,
-                            'Room': course.room,
-                            'CourseState': {name: course.courseState},
-                            'Link to Class': course.alternateLink
+        createCourseTableIfNotExists().then(async function (courseTable)
+        {
+            const newCourseList = [];
+            const updateCourseList = [];
+            gapi.client.classroom.courses.list().then(async function (response) {
+                var courses = response.result.courses;
+                const query = await courseTable.selectRecordsAsync();
+                console.log("query length: " + query.recordIds.length);
+                if (courses?.length > 0) {
+                    for (var i = 0; i < courses.length; i++) {
+                        var course = courses[i];
+                        var courseId = course.id;
+                        console.log("course ID: " + courseId);
+                        var courseRecord = {
+                            fields: {
+                                'CourseId': parseInt(course.id),
+                                'Course Name': course.name,
+                                'Section': course.section,
+                                'DescriptionHeading': course.descriptionHeading,
+                                'Description': course.description,
+                                'Room': course.room,
+                                'CourseState': {name: course.courseState},
+                                'Link to Class': course.alternateLink
+                            }
+                        };
+                        
+                        console.log("course state: " + JSON.stringify(course.courseState));
+                        var existingRecord = query.records.find(record => record.getCellValue("CourseId") === courseRecord.fields.CourseId);
+                        if(typeof(existingRecord) === typeof(undefined))
+                        {
+                            console.log("record doesn't exist yet");
+                            newCourseList.push(courseRecord);
                         }
-                    };
-                    
-                    console.log("course state: " + JSON.stringify(course.courseState));
-                    //console.log("courseRecords[0]: " + JSON.stringify(courseRecords[0].fields));
-                    // if(typeof(courseRecords.find(record => record.fields.CourseId === courseRecord.fields.CourseId)) === typeof(undefined))
-                    // {
-                    //     console.log("record doesn't exist yet");
-                         newCourseList.push(courseRecord);
-                    // }
-                    
-                    //listCourseWork(courseId);
-                    //listCourseTopics(courseId);
-                    // out of respect for the API, we wait a short time
-                    // between making requests. If you change this example to use a different API, you might
-                    // not need this.
-                    await delayAsync(50);
+                        else{
+                            console.log("record already exists");
+                            //TODO: FIX
+                            if((existingRecord.getCellValue("CourseId") != courseRecord.fields.CourseId)
+                            || (existingRecord.getCellValue("Course Name") != courseRecord.fields.CourseName)
+                            || (existingRecord.getCellValue("Section") != courseRecord.fields.Section)
+                            || (existingRecord.getCellValue("DescriptionHeading") != courseRecord.fields.DescriptionHeading)
+                            || (existingRecord.getCellValue("Description") != courseRecord.fields.Description)
+                            || (existingRecord.getCellValue("Room") != courseRecord.fields.Room)
+                            || (existingRecord.getCellValue("CourseState") != courseRecord.fields.CourseState)
+                            || (existingRecord.getCellValue("Link to Class") != courseRecord.fields.LinkToClass))
+                            {
+                                console.log("at least one field is different");
+                                updateCourseList.push(courseRecord);
+                            }
+                        }
+                        
+                        //listCourseWork(courseId);
+                        //listCourseTopics(courseId);
+                        // out of respect for the API, we wait a short time
+                        // between making requests. If you change this example to use a different API, you might
+                        // not need this.
+                        await delayAsync(50);
+                    }
+                    query.unloadData();
                 }
-            }
-            else {
-                console.log("no courses found");
-            }
-            console.log("newCourseList created: " + JSON.stringify(newCourseList));
-            createOrUpdateCourseTable(newCourseList);//, courseTable);
+                else {
+                    console.log("no courses found");
+                }
+                console.log("newCourseList created: " + JSON.stringify(newCourseList));
+                createOrUpdateCourseTable(newCourseList, courseTable);
+            });
         });
     }
     
@@ -271,43 +293,6 @@ function HelloWorldBlock() {
         </Box>
     );
 
-}
-
-/**
- * Print the names of the first 10 courses the user has access to. If
- * no courses are found an appropriate message is printed.
- */
-function listCourses() {
-    gapi.client.classroom.courses.list().then(function (response) {
-        var courses = response.result.courses;
-        appendPre('Courses:');
-
-        if (courses.length > 0) {
-            for (var i = 0; i < courses.length; i++) {
-                var course = courses[i];
-                appendPre(course.name);
-                var courseId = course.id;
-                console.log("course ID: " + courseId);
-                // var courseRecord = {
-                //     'Course Name': course.name,
-                //     'CourseId': course.id,
-                //     'Section': course.section,
-                //     'DescriptionHeading': course.descriptionHeading,
-                //     'Description': course.description,
-                //     'Room': course.room,
-                //     'CourseState': {name: course.courseState.name},
-                //     'alternateLink': course.alternateLink
-                // };
-                // newCourseList.push(courseRecord);
-                // listCourseWork(courseId);
-                // listCourseTopics(courseId);
-            }
-        }
-        else {
-            console.log("no courses found");
-            appendPre('No courses found.');
-        }
-    });
 }
 
 /**
