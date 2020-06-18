@@ -1,6 +1,7 @@
 
 import { initializeBlock, useBase, useRecords, Loader, Button, Box } from '@airtable/blocks/ui';
 import React, { Fragment, useState } from 'react';
+import { appendPre, listCourses, clearBody } from './googleClassroomSync';
 const credentials = require('../../../../../credentials.json')
 
 // These values match the base for this example: https://airtable.com/shrIho8SB7RhrlUQL
@@ -27,6 +28,10 @@ var SCOPES =
     "https://www.googleapis.com/auth/classroom.coursework.me " +
     "https://www.googleapis.com/auth/classroom.topics";
 
+export var courses;
+export var topics;
+export var assignments;
+
 /**
  *  On load, called to load the auth2 library and API client library.
  */
@@ -39,7 +44,6 @@ function handleClientLoad() {
  *  listeners.
  */
 function initClient() {
-
     var authorizeButton = document.getElementById('authorize_button');
     var signoutButton = document.getElementById('signout_button');
     gapi.client.init({
@@ -48,7 +52,7 @@ function initClient() {
         discoveryDocs: DISCOVERY_DOCS,
         scope: SCOPES
     }).then(function () {
-        //gapi.auth2.getAuthInstance().signOut().then(function() {
+        gapi.auth2.getAuthInstance().signOut().then(function() {
         // Listen for sign-in state changes.
         gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
 
@@ -59,7 +63,7 @@ function initClient() {
     }, function (error) {
         appendPre(JSON.stringify(error, null, 2));
     });
-    //});
+    });
 }
 
 /**
@@ -67,7 +71,6 @@ function initClient() {
  *  appropriately. After a sign-in, the API is called.
  */
 function updateSigninStatus(isSignedIn) {
-
     var authorizeButton = document.getElementById('authorize_button');
     var signoutButton = document.getElementById('signout_button');
     if (isSignedIn) {
@@ -94,13 +97,14 @@ function handleSignoutClick(event) {
     gapi.auth2.getAuthInstance().signOut();
     clearBody();
 }
-function SyncWithGoogleClassroom() {
+
+function Begin() {
     const base = useBase();
-    const table = base.getTableByName('Table 1');
-    const records = useRecords(table);
+    const courseTable = base.getTableByName(TABLE_NAME);
+    const records = useRecords(courseTable);
 
     return (
-        <SyncClass table={table} records={records} />
+        <SyncClass courseTable={courseTable} records={records} />
     );
 
 }
@@ -119,105 +123,11 @@ function load_script(src) {
         document.body.appendChild(script);
     })
 };
+
 // Promise Interface can ensure load the script only once.
 var gapi_script = load_script(GOOGLE_API_ENDPOINT);
 
-/**
- * Append a pre element to the body containing the given message
- * as its text node. Used to display the results of the API call.
- *
- * @param {string} message Text to be placed in pre element.
- */
-function appendPre(message) {
-    var pre = document.getElementById('content');
-    var textContent = document.createTextNode(message + '\n');
-    pre.appendChild(textContent);
-}
-
-
-/**
- * Clear the body containing the given message
- * as its text node. Used to display the results of the API call.
- *
- */
-function clearBody() {
-    var pre = document.getElementById('content');
-    var pre = document.getElementById('content');
-    pre.innerHTML = '';
-}
-
-/**
- * Print the names of the first 10 courses the user has access to. If
- * no courses are found an appropriate message is printed.
- */
-function listCourses() {
-    gapi.client.classroom.courses.list({
-        pageSize: 10
-    }).then(function (response) {
-        var courses = response.result.courses;
-        appendPre('Courses:');
-
-        if (courses.length > 0) {
-            for (var i = 0; i < courses.length; i++) {
-                var course = courses[i];
-                appendPre(course.name)
-                var courseId = course.id;
-                console.log("ID: " + courseId)
-                listCourseWork(courseId)
-                listCourseTopics(courseId)
-            }
-        } else {
-            appendPre('No courses found.');
-        }
-    });
-}
-/**
-* Print the names of the first 10 assignments the user has access to. If
-* no courses are found an appropriate message is printed.
-*/
-function listCourseWork(id) {
-    gapi.client.classroom.courses.courseWork.list({
-        courseId: id
-    }).then(function (response) {
-        var courseWorks = response.result.courseWork;
-        appendPre('CourseWork:');
-
-        if (courseWorks.length > 0) {
-            for (var i = 0; i < courseWorks.length; i++) {
-                var courseWork = courseWorks[i];
-                appendPre("Assignment:" + courseWork.title)
-                appendPre("updated: " + courseWork.updateTime)
-                appendPre("ID: " + courseWork.id)
-                if (courseWork.dueDate != undefined) {
-                    appendPre("Due:" + courseWork.dueDate.month + "/" + courseWork.dueDate.day + "/" + courseWork.dueDate.year)
-                }
-                else appendPre("No Due Date");
-            }
-        } else {
-            appendPre('No courseWorks found.');
-        }
-    });
-}
-
-function listCourseTopics(id) {
-    gapi.client.classroom.courses.topics.list({
-        courseId: id
-    }).then(function (response) {
-        var topics = response.result.topic;
-        if (topics.length > 0) {
-            for (var i = 0; i < topics.length; i++) {
-                var topic = topics[i];
-                appendPre("Topic Name:" + topic.name)
-                appendPre("Topic Updated: " + topic.updateTime)
-                appendPre("TopicId: " + topic.topicId)
-            }
-        } else {
-            appendPre('No topics found.');
-        }
-    });
-}
-
-initializeBlock(() => <SyncWithGoogleClassroom />);
+initializeBlock(() => <Begin />);
 
 
 class SyncClass extends React.Component {
@@ -250,7 +160,6 @@ class SyncClass extends React.Component {
             <>
                 <button id="authorize_button" style={{ display: "none" }}>Authorize</button>
                 <button id="signout_button" style={{ display: "none" }}>Sign Out</button>
-
                 <pre id="content" style={{ "whiteSpace": "pre-wrap" }}></pre>
             </>
         );
