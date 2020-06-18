@@ -1,19 +1,15 @@
 
 import { initializeBlock, useBase, useRecords, Loader, Button, Box } from '@airtable/blocks/ui';
 import React, { Fragment, useState } from 'react';
-import { appendPre, listCourses, clearBody } from './googleClassroomSync';
 const credentials = require('../../../../../credentials.json')
 
 // These values match the base for this example: https://airtable.com/shrIho8SB7RhrlUQL
 const TABLE_NAME = 'Table 1';
-const TITLE_FIELD_NAME = 'Name';
-const EXTRACT_FIELD_NAME = 'Notes';
-const IMAGE_FIELD_NAME = 'Attachments';
 
 // Airtable SDK limit: we can only update 50 records at a time. For more details, see
 // https://github.com/Airtable/blocks/blob/master/packages/sdk/docs/guide_writes.md#size-limits--rate-limits
 const MAX_RECORDS_PER_UPDATE = 50;
-const GOOGLE_API_ENDPOINT = 'https://apis.google.com/js/api.js';
+const GOOGLE_API_ENDPOINT = "https://apis.google.com/js/api.js";
 //   // Client ID and API key from the Developer Console
 var CLIENT_ID = credentials.CLIENT_ID;
 var API_KEY = credentials.API_KEY;
@@ -28,9 +24,9 @@ var SCOPES =
     "https://www.googleapis.com/auth/classroom.coursework.me " +
     "https://www.googleapis.com/auth/classroom.topics";
 
-export var courses;
-export var topics;
-export var assignments;
+export var courseList = [];
+export var topicList = [];
+export var assignmentList = [];
 
 /**
  *  On load, called to load the auth2 library and API client library.
@@ -46,24 +42,27 @@ function handleClientLoad() {
 function initClient() {
     var authorizeButton = document.getElementById('authorize_button');
     var signoutButton = document.getElementById('signout_button');
-    gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: DISCOVERY_DOCS,
-        scope: SCOPES
-    }).then(function () {
-        gapi.auth2.getAuthInstance().signOut().then(function() {
-        // Listen for sign-in state changes.
-        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-
-        // Handle the initial sign-in state.
-        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-        authorizeButton.onclick = handleAuthClick;
-        signoutButton.onclick = handleSignoutClick;
-    }, function (error) {
-        appendPre(JSON.stringify(error, null, 2));
-    });
-    });
+    if(authorizeButton && signoutButton)
+    {
+        gapi.client.init({
+            apiKey: API_KEY,
+            clientId: CLIENT_ID,
+            discoveryDocs: DISCOVERY_DOCS,
+            scope: SCOPES
+        }).then(function () {
+            // Listen for sign-in state changes.
+            gapi.auth2.getAuthInstance().signOut().then(function(){
+                gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+    
+                    // Handle the initial sign-in state.
+                    updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+                    authorizeButton.onclick = handleAuthClick;
+                    signoutButton.onclick = handleSignoutClick;
+                }, function (error) {
+                    appendPre(JSON.stringify(error, null, 2));
+                });
+            });
+    }
 }
 
 /**
@@ -98,15 +97,113 @@ function handleSignoutClick(event) {
     clearBody();
 }
 
-function Begin() {
+function HelloWorldBlock() {
     const base = useBase();
-    const courseTable = base.getTableByName(TABLE_NAME);
-    const records = useRecords(courseTable);
+    const table = base.getTableByName(TABLE_NAME);
+    const records = useRecords(table);
 
     return (
-        <SyncClass courseTable={courseTable} records={records} />
+        <SyncClass table={table} records={records} />
     );
 
+}
+
+/**
+ * Append a pre element to the body containing the given message
+ * as its text node. Used to display the results of the API call.
+ *
+ * @param {string} message Text to be placed in pre element.
+ */
+function appendPre(message) {
+    var pre = document.getElementById('content');
+    var textContent = document.createTextNode(message + '\n');
+    pre.appendChild(textContent);
+}
+/**
+ * Clear the body containing the given message
+ * as its text node. Used to display the results of the API call.
+ *
+ */
+function clearBody() {
+    var pre = document.getElementById('content');
+    var pre = document.getElementById('content');
+    pre.innerHTML = '';
+}
+/**
+ * Print the names of the first 10 courses the user has access to. If
+ * no courses are found an appropriate message is printed.
+ */
+function listCourses() {
+    gapi.client.classroom.courses.list().then(function (response) {
+        var courses = response.result.courses;
+        appendPre('Courses:');
+
+        if (courses.length > 0) {
+            for (var i = 0; i < courses.length; i++) {
+                var course = courses[i];
+                appendPre(course.name);
+                var courseId = course.id;
+                courseList.push(course);
+                listCourseWork(courseId);
+                listCourseTopics(courseId);
+            }
+        }
+        else {
+            console.log("no courses found");
+            appendPre('No courses found.');
+        }
+    });
+
+    //write courses to database
+    //createOrUpdateCourseTable(courses);
+}
+
+/**
+* Print the names of the first 10 assignments the user has access to. If
+* no courses are found an appropriate message is printed.
+*/
+function listCourseWork(id) {
+    gapi.client.classroom.courses.courseWork.list({
+        courseId: id
+    }).then(function (response) {
+        var courseWorks = response.result.courseWork;
+        appendPre('CourseWork:');
+
+        if (courseWorks.length > 0) {
+            for (var i = 0; i < courseWorks.length; i++) {
+                var courseWork = courseWorks[i];
+                appendPre("Assignment:" + courseWork.title);
+                appendPre("updated: " + courseWork.updateTime);
+                appendPre("ID: " + courseWork.id);
+                if (courseWork.dueDate != undefined) {
+                    appendPre("Due:" + courseWork.dueDate.month + "/" + courseWork.dueDate.day + "/" + courseWork.dueDate.year);
+                }
+                else
+                    appendPre("No Due Date");
+            }
+        }
+        else {
+            appendPre('No courseWorks found.');
+        }
+    });
+}
+function listCourseTopics(id) {
+    gapi.client.classroom.courses.topics.list({
+        courseId: id
+    }).then(function (response) {
+        var topics = response.result.topic;
+        if (topics.length > 0) {
+            for (var i = 0; i < topics.length; i++) {
+                var topic = topics[i];
+                appendPre("Topic Name:" + topic.name);
+                appendPre("Topic Updated: " + topic.updateTime);
+                appendPre("TopicId: " + topic.topicId);
+            }
+        }
+        else {
+            appendPre('No topics found.');
+        }
+    });
 }
 
 function load_script(src) {
@@ -125,10 +222,9 @@ function load_script(src) {
 };
 
 // Promise Interface can ensure load the script only once.
-var gapi_script = load_script(GOOGLE_API_ENDPOINT);
+var gapi_script = load_script('https://apis.google.com/js/api.js');
 
-initializeBlock(() => <Begin />);
-
+initializeBlock(() => <HelloWorldBlock />);
 
 class SyncClass extends React.Component {
     constructor(props) {
