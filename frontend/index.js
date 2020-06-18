@@ -43,26 +43,19 @@ function handleClientLoad() {
  *  listeners.
  */
 function initClient() {
-    var authorizeButton = document.getElementById('authorize_button');
-    var signoutButton = document.getElementById('signout_button');
-    if(authorizeButton && signoutButton)
-    {
-        gapi.client.init({
-            apiKey: API_KEY,
-            clientId: CLIENT_ID,
-            discoveryDocs: DISCOVERY_DOCS,
-            scope: SCOPES
-        }).then(function () {
-            // Listen for sign-in state changes.
-            gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-                // Handle the initial sign-in state.
-                updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-                authorizeButton.onclick = handleAuthClick;
-                signoutButton.onclick = handleSignoutClick;
-            }, function (error) {
-                appendPre(JSON.stringify(error, null, 2));
-            });
-    }
+    gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: DISCOVERY_DOCS,
+        scope: SCOPES
+    }).then(function () {
+        // Listen for sign-in state changes.
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+            // Handle the initial sign-in state.
+            updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+        }, function (error) {
+            appendPre(JSON.stringify(error, null, 2));
+        });
 }
 /**
  *  Called when the signed in status changes, to update the UI
@@ -71,12 +64,15 @@ function initClient() {
 function updateSigninStatus(isSignedIn) {
     var authorizeButton = document.getElementById('authorize_button');
     var signoutButton = document.getElementById('signout_button');
+    var syncButton = document.getElementById('sync_button');
     if (isSignedIn) {
         authorizeButton.style.display = 'none';
         signoutButton.style.display = 'block';
+        syncButton.style.display = 'block';
     } else {
         authorizeButton.style.display = 'block';
         signoutButton.style.display = 'none';
+        syncButton.style.display = 'none';
     }
 }
 
@@ -295,14 +291,7 @@ function HelloWorldBlock() {
                 <Loader />
             ) : (
                 <Fragment>
-                    <AuthClass/>
-                    <Button
-                        variant="primary"
-                        onClick={onButtonClick}
-                        marginBottom={3}
-                    >
-                        Sync with Google Classroom
-                    </Button>
+                    <AuthClass onButtonClick={onButtonClick}/>
                     {/* {!permissionCheck.hasPermission &&
                         // when we don't have permission to perform the update, we want to tell the
                         // user why. `reasonDisplayString` is a human-readable string that will
@@ -383,8 +372,9 @@ function appendPre(message) {
  */
 function clearBody() {
     var pre = document.getElementById('content');
-    var pre = document.getElementById('content');
-    pre.innerHTML = '';
+    if(pre){
+        pre.innerHTML = '';
+    }
 }
 
 function load_script(src) {
@@ -423,17 +413,17 @@ class AuthClass extends React.Component {
     /**
      *  Sign in the user upon button click.
      */
-    handleAuthClick() {
-        gapi.auth2.getAuthInstance().signIn();
-    }
+    // handleAuthClick() {
+    //     gapi.auth2.getAuthInstance().signIn();
+    // }
 
-    /**
-     *  Sign out the user upon button click.
-     */
-    handleSignoutClick() {
-        gapi.auth2.getAuthInstance().signOut();
-        clearBody();
-    }
+    // /**
+    //  *  Sign out the user upon button click.
+    //  */
+    // handleSignoutClick() {
+    //     gapi.auth2.getAuthInstance().signOut();
+    //     clearBody();
+    // }
 
     do_load() {
         var self = this;
@@ -457,9 +447,29 @@ class AuthClass extends React.Component {
             <>
                 {/* <button id="authorize_button" style={{ display: "none" }} onClick={this.handleAuthClick}>Authorize</button>
                 <button id="signout_button" style={{ display: "none" }} onClick={this.handleSignoutClick}>Sign Out</button> */}
-                <button id="authorize_button" style={{ display: "none" }}>Authorize</button>
-                <button id="signout_button" style={{ display: "none" }}>Sign Out</button>
-                <pre id="content" style={{ "whiteSpace": "pre-wrap" }}></pre>
+                <Button
+                    variant="primary"
+                    onClick={handleAuthClick}
+                    marginBottom={3}
+                    id="authorize_button"
+                    style={{ display: "none" }}
+                >Authorize</Button>
+                <Button
+                    variant="primary"
+                    onClick={this.props.onButtonClick}
+                    marginBottom={3}
+                    style={{ display: "none" }}
+                    id="sync_button"
+                >
+                    Sync with Google Classroom
+                </Button>
+                <Button
+                    onClick={handleSignoutClick}
+                    marginBottom={3}
+                    id="signout_button"
+                    style={{ display: "none" }}
+                >Sign Out</Button>
+                {/* <pre id="content" style={{ "whiteSpace": "pre-wrap" }}></pre> */}
             </>
         );
     }
