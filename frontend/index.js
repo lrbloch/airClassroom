@@ -29,24 +29,9 @@ var SCOPES =
 
 function HelloWorldBlock() {
     const base = useBase();
-
     const table = base.getTableByName(TABLE_NAME);
     const records = useRecords(table);
 
-    //const titleField = table.getFieldByName(TITLE_FIELD_NAME);
-
-    // load the records ready to be updated
-    // we only need to load the word field - the others don't get read, only written to.
-    //const records = useRecords(table, {fields: [titleField]});
-
-    // check whether we have permission to update our records or not. Any time we do a permissions
-    // check like this, we can pass in undefined for values we don't yet know. Here, as we want to
-    // make sure we can update the summary and image fields, we make sure to include them even
-    // though we don't know the values we want to use for them yet.
-    // const permissionCheck = table.checkPermissionsForUpdateRecord(undefined, {
-    //     [EXTRACT_FIELD_NAME]: undefined,
-    //     [IMAGE_FIELD_NAME]: undefined,
-    // });
     return (
         <Box
         // center the button/loading spinner horizontally and vertically.
