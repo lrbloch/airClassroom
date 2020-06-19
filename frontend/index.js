@@ -48,7 +48,6 @@ function HelloWorldBlock() {
             <AuthClass base={base}/>
         </Box>
     );
-
 }
 
 /**
@@ -110,14 +109,15 @@ class AuthClass extends React.Component {
         this.state = {
             status: 'start',
             isLoggedIn: props.isLoggedIn,
-            isUpdateInProgress: false
+            isUpdateInProgress: false,
+            lastSynced: null
             //base: props.base
         };
         
         // This binding is necessary to make `this` work in the callback
         this.handleAuthClick = this.handleAuthClick.bind(this);
         this.handleSignoutClick = this.handleSignoutClick.bind(this);
-        this.onButtonClick = this.onButtonClick.bind(this);
+        this.syncWithGoogleClassroom = this.syncWithGoogleClassroom.bind(this);
         this.handleClientLoad = this.handleClientLoad.bind(this);
         this.load_script = this.load_script.bind(this);
         this.initClient = this.initClient.bind(this);
@@ -203,7 +203,8 @@ class AuthClass extends React.Component {
             // Listen for sign-in state changes.
             gapi.auth2.getAuthInstance().isSignedIn.listen(self.updateSigninStatus);
                 // Handle the initial sign-in state.
-                self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+                self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get())
+                self.syncWithGoogleClassroom();
             }, function (error) {
                 appendPre(JSON.stringify(error, null, 2));
             });
@@ -216,15 +217,18 @@ class AuthClass extends React.Component {
         this.setState({'isSignedIn':isSignedIn})
     }
 
-    async onButtonClick() {
+    async syncWithGoogleClassroom() {
         // keep track of whether we have up update currently in progress - if there is, we want to hide
         // the update button so you can't have two updates running at once.
-        
         var self = this;
-        self.setState({'isUpdateInProgress': true});
-        self.getCourses().then(function () {
-            self.setState({'isUpdateInProgress': false});
-        });
+        if(self.state.isSignedIn){
+            self.setState({'isUpdateInProgress': true});
+            self.getCourses().then(function () {
+                var date = new Date(Date.now());
+                self.setState({'isUpdateInProgress': false});
+                self.setState({'lastSynced': date.toTimeString()})
+            });
+        }
     }
 
     async createOrUpdateCourseTable(newCourseList, updateCourseList, courseTable) {
@@ -424,27 +428,28 @@ class AuthClass extends React.Component {
 
         return (
             <>
-                {/* <button id="authorize_button" style={{ display: "none" }} onClick={this.handleAuthClick}>Authorize</button>
+            {/* <button id="authorize_button" style={{ display: "none" }} onClick={this.handleAuthClick}>Authorize</button>
                 <button id="signout_button" style={{ display: "none" }} onClick={this.handleSignoutClick}>Sign Out</button> */}
                 {this.state.isUpdateInProgress ? (
                     <Loader />
                 ) : (
                     <Fragment>
+                        {this.state.lastSynced ? (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
                         <Button
                             variant="primary"
                             onClick={this.handleAuthClick}
                             marginBottom={3}
                             id="authorize_button"
                             style={isLoggedIn ? { display: "none" } : { display: "block" }}
-                        >Authorize</Button>
+                        >Connect and Sync with Google Classroom</Button>
                         <Button
                             variant="primary"
-                            onClick={this.onButtonClick}
+                            onClick={this.syncWithGoogleClassroom}
                             marginBottom={3}
                             style={isLoggedIn ? { display: "block" } : { display: "none" }}
                             id="sync_button"
                         >
-                            Sync with Google Classroom
+                            Update
                         </Button>
                         <Button
                             onClick={this.handleSignoutClick}
