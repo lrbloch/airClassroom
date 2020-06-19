@@ -27,10 +27,6 @@ var SCOPES =
     "https://www.googleapis.com/auth/classroom.coursework.me " +
     "https://www.googleapis.com/auth/classroom.topics";
 
-export var newCourseList = [];
-export var topicList = [];
-export var assignmentList = [];
-
 /**
  *  On load, called to load the auth2 library and API client library.
  */
@@ -126,29 +122,39 @@ function HelloWorldBlock() {
         console.log("CREATE OR UPDATE - course list: " + newCourseList);
         if(courseTable != null)
         {
+            console.log("inside 'if'");
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
-            let i = 0;
-            while (i < newCourseList?.length) {
-                console.log("i = " + i);
-                const createBatch = newCourseList.slice(i, i + MAX_RECORDS_PER_UPDATE);
-                // await is used to wait for the update to finish saving to Airtable servers before
-                // continuing. This means we'll stay under the rate limit for writes.
-                const recordIds = await courseTable.createRecordsAsync(createBatch);
-                console.log(`new records created with ID: ${recordIds}`);
-                i += MAX_RECORDS_PER_UPDATE;
+            if(newCourseList?.length >0)
+            {
+                console.log("new courses");
+                let i = 0;
+                while (i < newCourseList?.length) {
+                    console.log("i = " + i);
+                    const createBatch = newCourseList.slice(i, i + MAX_RECORDS_PER_UPDATE);
+                    // await is used to wait for the update to finish saving to Airtable servers before
+                    // continuing. This means we'll stay under the rate limit for writes.
+                    const recordIds = await courseTable.createRecordsAsync(createBatch);
+                    console.log(`new records created with ID: ${recordIds}`);
+                    i += MAX_RECORDS_PER_UPDATE;
+                }
             }
+            
 
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
-            let j = 0;
-            while (j < updateCourseList?.length) {
-                const updateBatch = updateCourseList.slice(j, j + MAX_RECORDS_PER_UPDATE);
-                // await is used to wait for the update to finish saving to Airtable servers before
-                // continuing. This means we'll stay under the rate limit for writes.
-                if (courseTable.hasPermissionToUpdateRecords(updateBatch)) {
-                    await courseTable.updateRecordsAsync(updateBatch);
+            if(updateCourseList?.length >0)
+            {
+                console.log("new courses");
+                let j = 0;
+                while (j < updateCourseList?.length) {
+                    const updateBatch = updateCourseList.slice(j, j + MAX_RECORDS_PER_UPDATE);
+                    // await is used to wait for the update to finish saving to Airtable servers before
+                    // continuing. This means we'll stay under the rate limit for writes.
+                    if (courseTable.hasPermissionToUpdateRecords(updateBatch)) {
+                        await courseTable.updateRecordsAsync(updateBatch);
+                    }
+                    // Record updates have been saved to Airtable servers.
+                    j += MAX_RECORDS_PER_UPDATE;
                 }
-                // Record updates have been saved to Airtable servers.
-                j += MAX_RECORDS_PER_UPDATE;
             }
         }
         
@@ -291,7 +297,7 @@ function HelloWorldBlock() {
                 <Loader />
             ) : (
                 <Fragment>
-                    <AuthClass onButtonClick={onButtonClick}/>
+                    <AuthClass onButtonClick={onButtonClick} />
                     {/* {!permissionCheck.hasPermission &&
                         // when we don't have permission to perform the update, we want to tell the
                         // user why. `reasonDisplayString` is a human-readable string that will
@@ -410,21 +416,6 @@ class AuthClass extends React.Component {
         //this.handleSignoutClick = this.handleSignoutClick.bind(this);
     }
 
-    /**
-     *  Sign in the user upon button click.
-     */
-    // handleAuthClick() {
-    //     gapi.auth2.getAuthInstance().signIn();
-    // }
-
-    // /**
-    //  *  Sign out the user upon button click.
-    //  */
-    // handleSignoutClick() {
-    //     gapi.auth2.getAuthInstance().signOut();
-    //     clearBody();
-    // }
-
     do_load() {
         var self = this;
         gapi_script.then(function () {
@@ -469,7 +460,6 @@ class AuthClass extends React.Component {
                     id="signout_button"
                     style={{ display: "none" }}
                 >Sign Out</Button>
-                {/* <pre id="content" style={{ "whiteSpace": "pre-wrap" }}></pre> */}
             </>
         );
     }
