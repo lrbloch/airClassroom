@@ -114,7 +114,8 @@ export class ClassroomSync extends React.Component {
      *  appropriately. After a sign-in, the API is called.
      */
     updateSigninStatus(isSignedIn) {
-        this.setState({ 'isSignedIn': isSignedIn });
+        console.log("isSignedIn: " + isSignedIn);
+        this.setState({ 'isLoggedIn': isSignedIn });
     }
 
 
@@ -122,7 +123,7 @@ export class ClassroomSync extends React.Component {
         // keep track of whether we have up update currently in progress - if there is, we want to hide
         // the update button so you can't have two updates running at once.
         var self = this;
-        if (self.state.isSignedIn) {
+        if (self.state.isLoggedIn) {
             self.setState({ 'isUpdateInProgress': true });
             self.getCourses().then(function () {
                 var date = new Date(Date.now());
@@ -382,7 +383,8 @@ export class ClassroomSync extends React.Component {
                     <Loader />
                 ) : (
                         <Fragment>
-                            {this.state.lastSynced ? (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
+                            {(this.state.lastSynced != null && this.state.isLoggedIn) ? 
+                            (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
                             <Button
                                 variant="primary"
                                 onClick={this.handleAuthClick}
