@@ -1,9 +1,18 @@
 import { Loader, Button } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
 import { FieldType } from '@airtable/blocks/models';
-import { GOOGLE_API_ENDPOINT, API_KEY, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE, COURSE_TABLE_NAME } from './index';
+import { GOOGLE_API_ENDPOINT, API_KEY, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE} from './index';
+
+/** @enum {string} */
+const tableType = {
+    COURSE: "Course",
+    ASSIGNMENT: "Assignments",
+    TOPIC: "Topic",
+}
 
 export class ClassroomSync extends React.Component {
+    
+    
     constructor(props) {
         super(props);
         this.state = {
@@ -22,10 +31,12 @@ export class ClassroomSync extends React.Component {
         this.load_script = this.load_script.bind(this);
         this.initClient = this.initClient.bind(this);
         this.updateSigninStatus = this.updateSigninStatus.bind(this);
-        this.createCourseTableIfNotExists = this.createCourseTableIfNotExists.bind(this);
-        this.createOrUpdateCourseTable = this.createOrUpdateCourseTable.bind(this);
+        this.createTableIfNotExists = this.createTableIfNotExists.bind(this);
+        this.syncTableRecords = this.syncTableRecords.bind(this);
         this.delayAsync = this.delayAsync.bind(this);
         this.getCourses = this.getCourses.bind(this);
+        this.getAssignments = this.getAssignments.bind(this);
+        this.recordsAreNotEqual = this.recordsAreNotEqual.bind(this);
         this.clearBody = this.clearBody.bind(this);
         // Promise Interface can ensure load the script only once.
         this.gapi_script = this.load_script(GOOGLE_API_ENDPOINT);
@@ -134,20 +145,18 @@ export class ClassroomSync extends React.Component {
     }
 
 
-    async createOrUpdateCourseTable(newCourseList, updateCourseList, courseTable) {
-        console.log("CREATE OR UPDATE - course list: " + newCourseList);
-        if (courseTable != null) {
-            console.log("inside 'if'");
+    async syncTableRecords(newRecords, updateRecords, table) {
+        if (table != null) {
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
-            if (newCourseList?.length > 0) {
+            if (newRecords?.length > 0) {
                 console.log("new courses");
                 let i = 0;
-                while (i < newCourseList?.length) {
+                while (i < newRecords?.length) {
                     console.log("i = " + i);
-                    const createBatch = newCourseList.slice(i, i + MAX_RECORDS_PER_UPDATE);
+                    const createBatch = newRecords.slice(i, i + MAX_RECORDS_PER_UPDATE);
                     // await is used to wait for the update to finish saving to Airtable servers before
                     // continuing. This means we'll stay under the rate limit for writes.
-                    const recordIds = await courseTable.createRecordsAsync(createBatch);
+                    const recordIds = await table.createRecordsAsync(createBatch);
                     console.log(`new records created with ID: ${recordIds}`);
                     i += MAX_RECORDS_PER_UPDATE;
                 }
@@ -155,136 +164,177 @@ export class ClassroomSync extends React.Component {
 
 
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
-            if (updateCourseList?.length > 0) {
+            if (updateRecords?.length > 0) {
                 console.log("new courses");
                 let j = 0;
-                while (j < updateCourseList?.length) {
-                    const updateBatch = updateCourseList.slice(j, j + MAX_RECORDS_PER_UPDATE);
+                while (j < updateRecords?.length) {
+                    const updateBatch = updateRecords.slice(j, j + MAX_RECORDS_PER_UPDATE);
                     // await is used to wait for the update to finish saving to Airtable servers before
                     // continuing. This means we'll stay under the rate limit for writes.
-                    if (courseTable.hasPermissionToUpdateRecords(updateBatch)) {
-                        await courseTable.updateRecordsAsync(updateBatch);
+                    if (table.hasPermissionToUpdateRecords(updateBatch)) {
+                        await table.updateRecordsAsync(updateBatch);
                     }
                     // Record updates have been saved to Airtable servers.
                     j += MAX_RECORDS_PER_UPDATE;
                 }
             }
         }
-
     }
 
-
-    async createCourseTableIfNotExists() {
-        let courseTable = this.props.base.getTableByNameIfExists(COURSE_TABLE_NAME);
-        if (courseTable == null) {
-            const name = COURSE_TABLE_NAME;
-            const fields = [
-                // CourseId will be the primary field of the table.
+    async createTableIfNotExists(tableName) {
+        console.log("Creating Table tableName: " + tableName);
+        let table = this.props.base.getTableByNameIfExists(tableName);
+        if (table == null) {
+            var fields = [];
+            switch(tableName)
+            {
+                case(tableType.COURSE):
                 {
-                    name: 'CourseId', type: FieldType.NUMBER,
-                    options: {
-                        precision: 0,
+                    fields = [
+                        // CourseId will be the primary field of the table.
+                        {
+                            name: 'CourseId', type: FieldType.NUMBER,
+                            options: {
+                                precision: 0,
+                            }
+                        },
+                        { name: 'Course Name', type: FieldType.SINGLE_LINE_TEXT },
+                        { name: 'Section', type: FieldType.SINGLE_LINE_TEXT },
+                        { name: 'DescriptionHeading', type: FieldType.SINGLE_LINE_TEXT },
+                        { name: 'Description', type: FieldType.SINGLE_LINE_TEXT },
+                        { name: 'Room', type: FieldType.SINGLE_LINE_TEXT },
+                        {
+                            name: 'CourseState', type: FieldType.SINGLE_SELECT, options: {
+                                choices: [
+                                    { name: "COURSE_STATE_UNSPECIFIED" },
+                                    { name: "ACTIVE" },
+                                    { name: "ARCHIVED" },
+                                    { name: "PROVISIONED" },
+                                    { name: "DECLINED" },
+                                    { name: "SUSPENDED" }
+                                ]
+                            }
+                        },
+                        { name: 'Link to Class', type: FieldType.URL },
+                    ];
+                }
+                break;
+                case tableType.ASSIGNMENT:
+                    {
+                        fields = [
+                            // CourseId will be the primary field of the table.
+                            {
+                                name: 'AssignmentId', type: FieldType.NUMBER,
+                                options: {
+                                    precision: 0,
+                                }
+                            },
+                            { name: 'Assignment', type: FieldType.SINGLE_LINE_TEXT },
+                            {name: 'Description', type: FieldType.MULTILINE_TEXT},
+                            {name: 'Materials', type: FieldType.SINGLE_LINE_TEXT},
+                            {name: 'Topic', type: FieldType.SINGLE_LINE_TEXT},
+                            {name: 'Link', type: FieldType.URL},
+                            {name: 'Points', type: FieldType.NUMBER, options: {precision: 0}},
+                            { name: 'Updated', type: FieldType.SINGLE_LINE_TEXT },
+                            { name: 'Due', type: FieldType.SINGLE_LINE_TEXT }
+                        ];
                     }
-                },
-                { name: 'Course Name', type: FieldType.SINGLE_LINE_TEXT },
-                { name: 'Section', type: FieldType.SINGLE_LINE_TEXT },
-                { name: 'DescriptionHeading', type: FieldType.SINGLE_LINE_TEXT },
-                { name: 'Description', type: FieldType.SINGLE_LINE_TEXT },
-                { name: 'Room', type: FieldType.SINGLE_LINE_TEXT },
-                {
-                    name: 'CourseState', type: FieldType.SINGLE_SELECT, options: {
-                        choices: [
-                            { name: "COURSE_STATE_UNSPECIFIED" },
-                            { name: "ACTIVE" },
-                            { name: "ARCHIVED" },
-                            { name: "PROVISIONED" },
-                            { name: "DECLINED" },
-                            { name: "SUSPENDED" }
-                        ]
-                    }
-                },
-                { name: 'Link to Class', type: FieldType.URL },
-            ];
-            console.log("creating course table");
-            if (this.props.base.unstable_hasPermissionToCreateTable(name, fields)) {
-                courseTable = await this.props.base.unstable_createTableAsync(name, fields);
+                    break;
+                default:
+                    break;
+            }
+            console.log(`creating ${tableName} table`);
+            if (this.props.base.unstable_hasPermissionToCreateTable(tableName, fields)) {
+                table = await this.props.base.unstable_createTableAsync(tableName, fields);
             }
         }
-        return courseTable;
+        return table;
     }
 
-    coursesAreNotEqual(existingRecord, courseRecord) {
-        return (existingRecord.getCellValue("CourseId") != courseRecord.fields.CourseId)
-            || (existingRecord.getCellValue("Course Name") != courseRecord.fields["Course Name"])
-            || (existingRecord.getCellValue("Section") != courseRecord.fields.Section)
-            || (existingRecord.getCellValue("DescriptionHeading") != courseRecord.fields.DescriptionHeading)
-            || (existingRecord.getCellValue("Description") != courseRecord.fields.Description)
-            || (existingRecord.getCellValue("Room") != courseRecord.fields.Room)
-            || (existingRecord.getCellValue("CourseState").name != courseRecord.fields.CourseState.name)
-            || (existingRecord.getCellValue("Link to Class") != courseRecord.fields["Link to Class"]);
+    recordsAreNotEqual(type, existingRecord, compareRecord) {
+        switch(type)
+        {
+            case tableType.COURSE:
+                return (existingRecord.getCellValue("CourseId") != compareRecord.fields.CourseId)
+                || (existingRecord.getCellValue("Course Name") != compareRecord.fields["Course Name"])
+                || (existingRecord.getCellValue("Section") != compareRecord.fields.Section)
+                || (existingRecord.getCellValue("DescriptionHeading") != compareRecord.fields.DescriptionHeading)
+                || (existingRecord.getCellValue("Description") != compareRecord.fields.Description)
+                || (existingRecord.getCellValue("Room") != compareRecord.fields.Room)
+                || (existingRecord.getCellValue("CourseState").name != compareRecord.fields.CourseState.name)
+                || (existingRecord.getCellValue("Link to Class") != compareRecord.fields["Link to Class"]);
+            case tableType.ASSIGNMENT:
+                return ((existingRecord.getCellValue("AssignmentId") != compareRecord.fields.AssignmentId)
+                || (existingRecord.getCellValue("Assignment") != compareRecord.fields["Assignment"])
+                || (existingRecord.getCellValue("Description") != compareRecord.fields.Description)
+                || (existingRecord.getCellValue("Topic") != compareRecord.fields.Topic)
+                || (existingRecord.getCellValue("Link") != compareRecord.fields.Link)
+                || (existingRecord.getCellValue("Points") != compareRecord.fields.Points)
+                || (existingRecord.getCellValue("Updated") != compareRecord.fields.Updated)
+                || (existingRecord.getCellValue("Due") != compareRecord.fields.DescriptionHeading));
+            default:
+                return false;
+        }
+        
     }
 
 
     async getCourses() {
         var self = this;
-        self.createCourseTableIfNotExists().then(async function (courseTable) {
+        console.log("calling createTableIfNotExists from getCourses");
+        self.createTableIfNotExists(tableType.COURSE).then(async function (courseTable) {
             const newCourseList = [];
             const updateCourseList = [];
             gapi.client.classroom.courses.list().then(async function (response) {
                 var courses = response.result.courses;
-                const query = await courseTable.selectRecordsAsync();
-                console.log("query length: " + query.recordIds.length);
-                if (courses?.length > 0) {
-                    for (var i = 0; i < courses.length; i++) {
-                        var course = courses[i];
-                        var courseId = course.id;
-                        console.log("course ID: " + courseId);
-                        var courseRecord = {
-                            fields: {
-                                'CourseId': parseInt(course.id),
-                                'Course Name': course.name,
-                                'Section': course.section,
-                                'DescriptionHeading': course.descriptionHeading,
-                                'Description': course.description,
-                                'Room': course.room,
-                                'CourseState': { name: course.courseState },
-                                'Link to Class': course.alternateLink
-                            }
-                        };
-
-                        var existingRecord = query.records.find(record => record.getCellValue("CourseId") === courseRecord.fields.CourseId);
-                        if (typeof (existingRecord) === typeof (undefined)) {
-                            console.log("record doesn't exist yet");
-                            newCourseList.push(courseRecord);
-                        }
-                        else {
-                            console.log("record already exists");
-
-                            if (self.coursesAreNotEqual(existingRecord, courseRecord)) {
-                                console.log("at least one field is different");
-                                courseRecord.id = existingRecord.id;
-                                console.log("courseRecord: " + JSON.stringify(courseRecord));
-                                updateCourseList.push(courseRecord);
+                courseTable.selectRecordsAsync().then(async function (query){
+                    if (courses?.length > 0) {
+                        courses.forEach(async (course) => {
+                            var courseId = course.id;
+                            console.log("course ID: " + courseId);
+                            var courseRecord = {
+                                fields: {
+                                    'CourseId': parseInt(course.id),
+                                    'Course Name': course.name,
+                                    'Section': course.section,
+                                    'DescriptionHeading': course.descriptionHeading,
+                                    'Description': course.description,
+                                    'Room': course.room,
+                                    'CourseState': { name: course.courseState },
+                                    'Link to Class': course.alternateLink
+                                }
+                            };
+                            var existingRecord = query.records.find(record => record.getCellValue("CourseId") === courseRecord.fields.CourseId);
+                            if (typeof (existingRecord) === typeof (undefined)) {
+                                console.log("record doesn't exist yet");
+                                newCourseList.push(courseRecord);
                             }
                             else {
-                                console.log("courses are equal");
+                                console.log("record already exists");
+    
+                                if (self.recordsAreNotEqual(tableType.COURSE, existingRecord, courseRecord)) {
+                                    console.log("at least one field is different");
+                                    courseRecord.id = existingRecord.id;
+                                    console.log("courseRecord: " + JSON.stringify(courseRecord));
+                                    updateCourseList.push(courseRecord);
+                                }
+                                else {
+                                    console.log("courses are equal");
+                                }
                             }
-                        }
-
-                        //listCourseWork(courseId);
-                        //listCourseTopics(courseId);
-                        // out of respect for the API, we wait a short time
-                        // between making requests. If you change this example to use a different API, you might
-                        // not need this.
-                        await self.delayAsync(50);
+                            self.getAssignments(courseId).then(async function() {
+                                await self.delayAsync(50);
+                            });
+                        });
+                        query.unloadData();
                     }
-                    query.unloadData();
-                }
-                else {
-                    console.log("no courses found");
-                }
-                console.log("newCourseList created: " + JSON.stringify(newCourseList));
-                self.createOrUpdateCourseTable(newCourseList, updateCourseList, courseTable);
+                    else {
+                        console.log("no courses found");
+                    }
+                    console.log("newCourseList created: " + JSON.stringify(newCourseList));
+                    self.syncTableRecords(newCourseList, updateCourseList, courseTable);
+                });
+                
             });
         });
     }
@@ -293,30 +343,64 @@ export class ClassroomSync extends React.Component {
     * Print the names of the first 10 assignments the user has access to. If
     * no courses are found an appropriate message is printed.
     */
-    listCourseWork(id) {
-        gapi.client.classroom.courses.courseWork.list({
-            courseId: id
-        }).then(function (response) {
-            var courseWorks = response.result.courseWork;
-            appendPre('CourseWork:');
+    async getAssignments(id) {
+        var self = this;
+        console.log("calling createTableIfNotExists from getAssignments");
+        self.createTableIfNotExists(tableType.ASSIGNMENT).then (async function (assignmentTable){
+            const newAssignmentList = [];
+            const updateAssignmentList = [];
+            gapi.client.classroom.courses.courseWork.list({
+                courseId: id
+            }).then(async function (response) {
+                var assignments = response.result.courseWork;
+                const query = await assignmentTable.selectRecordsAsync();
+                if (assignments.length > 0) {
+                    for (var i = 0; i < assignments.length; i++) {
+                        var assignment = assignments[i];
+                        //TODO: create syncMaterials
+                        //var materials = assignments[i].materials;
+                        //self.syncMaterials(materials);
+                        //TODO: create syncTopics
+                        //var topicId = assignments[i].topicId;
+                        //self.syncTopics(topicId);
+                        var assignmentRecord = {
+                            fields: {
+                                'AssignmentId':parseInt(assignment.id),
+                                'Assignment':assignment.title,
+                                'Description':assignment.description,
+                                'Topic': assignment.topicId,
+                                'Link': assignment.alternateLink,
+                                'Points': assignment.maxPoints,
+                                'Updated':assignment.updateTime,
+                                'Due':assignment.dueDate ? `${assignment.dueDate.month}/${assignment.dueDate.day}/${assignment.dueDate.year} ${assignment.dueTime.hours}:${assignment.dueTime.minutes}` : '',
+                            }
+                        };
 
-            if (courseWorks.length > 0) {
-                for (var i = 0; i < courseWorks.length; i++) {
-                    var courseWork = courseWorks[i];
-                    appendPre("Assignment:" + courseWork.title);
-                    appendPre("updated: " + courseWork.updateTime);
-                    appendPre("ID: " + courseWork.id);
-                    if (courseWork.dueDate != undefined) {
-                        appendPre("Due:" + courseWork.dueDate.month + "/" + courseWork.dueDate.day + "/" + courseWork.dueDate.year);
+                        var existingRecord = query.records.find(record => record.getCellValue('AssignmentId') === assignmentRecord.fields.AssignmentId);
+                        if(typeof(existingRecord) === typeof(undefined)){
+                            console.log("assignment record doesn't exist yet");
+                            newAssignmentList.push(assignmentRecord);
+                        }
+                        else {
+                            console.log("assignment record already exists");
+                            if (self.recordsAreNotEqual(tableType.ASSIGNMENT, existingRecord, assignmentRecord)) {
+                                console.log("at least one field is different");
+                                assignmentRecord.id = existingRecord.id;
+                                console.log("assignmentRecord: " + JSON.stringify(assignmentRecord));
+                                updateAssignmentList.push(assignmentRecord);
+                            }
+                            else {
+                                console.log("assignments are equal");
+                            }
+                        }
                     }
-                    else
-                        appendPre("No Due Date");
                 }
-            }
-            else {
-                appendPre('No courseWorks found.');
-            }
-        });
+                else {
+                    console.log('No assignments found.');
+                }
+                self.syncTableRecords(newAssignmentList, updateAssignmentList, assignmentTable);
+            });
+        })
     }
 
     listCourseTopics(id) {
@@ -337,8 +421,6 @@ export class ClassroomSync extends React.Component {
             }
         });
     }
-
-
 
     delayAsync(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
