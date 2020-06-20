@@ -417,7 +417,8 @@ export class ClassroomSync extends React.Component {
 
 String.prototype.toAmPmString = function () {
     var ampm = "am";
-    var hours = parseInt(this.match(/([0-9]+):/)[0]);
+    var hoursRegex = /^([0-9][0-9])/;
+    var hours = parseInt(this.match(hoursRegex)[0]);
     console.log("hours: " + hours);
     if(hours > 12 && hours < 24){
         hours = 24-hours;
@@ -427,5 +428,5 @@ String.prototype.toAmPmString = function () {
         hours = 12;
         ampm = "am";
     }
-    return (this.replace(/^([0-9][0-9])/, hours) +" " +ampm);
+    return (this.replace(hoursRegex, hours) +" " +ampm);
 };
