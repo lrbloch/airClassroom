@@ -127,7 +127,7 @@ export class ClassroomSync extends React.Component {
             self.getCourses().then(function () {
                 var date = new Date(Date.now());
                 self.setState({ 'isUpdateInProgress': false });
-                self.setState({ 'lastSynced': date.toTimeString() });
+                self.setState({ 'lastSynced': date.toTimeString().replace(/([0-9]+:[0-9]+:[0-9]+).*/, '$1').toAmPmString() });
             });
         }
     }
@@ -414,3 +414,18 @@ export class ClassroomSync extends React.Component {
         );
     }
 }
+
+String.prototype.toAmPmString = function () {
+    var ampm = "am";
+    var hours = parseInt(this.match(/([0-9]+):/)[0]);
+    console.log("hours: " + hours);
+    if(hours > 12 && hours < 24){
+        hours = 24-hours;
+        ampm = "pm";
+    }
+    if(hours == 24) {
+        hours = 12;
+        ampm = "am";
+    }
+    return (this.replace(/^([0-9][0-9])/, hours) +" " +ampm);
+};
