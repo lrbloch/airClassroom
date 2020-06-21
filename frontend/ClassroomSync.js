@@ -37,6 +37,7 @@ export class ClassroomSync extends React.Component {
         this.getCourses = this.getCourses.bind(this);
         this.getAssignments = this.getAssignments.bind(this);
         this.recordsAreNotEqual = this.recordsAreNotEqual.bind(this);
+        this.asyncForEach = this.asyncForEach.bind(this);
         this.clearBody = this.clearBody.bind(this);
         // Promise Interface can ensure load the script only once.
         this.gapi_script = this.load_script(GOOGLE_API_ENDPOINT);
@@ -232,6 +233,12 @@ export class ClassroomSync extends React.Component {
                             { name: 'Assignment', type: FieldType.SINGLE_LINE_TEXT },
                             {name: 'Description', type: FieldType.MULTILINE_TEXT},
                             {name: 'Materials', type: FieldType.SINGLE_LINE_TEXT},
+                            {
+                                name: 'CourseId', type: FieldType.NUMBER,
+                                options: {
+                                    precision: 0,
+                                }
+                            },
                             {name: 'Topic', type: FieldType.SINGLE_LINE_TEXT},
                             {name: 'Link', type: FieldType.URL},
                             {name: 'Points', type: FieldType.NUMBER, options: {precision: 0}},
@@ -268,6 +275,7 @@ export class ClassroomSync extends React.Component {
                 || (existingRecord.getCellValue("Assignment") != compareRecord.fields["Assignment"])
                 || (existingRecord.getCellValue("Description") != compareRecord.fields.Description)
                 || (existingRecord.getCellValue("Topic") != compareRecord.fields.Topic)
+                || (existingRecord.getCellValue("CourseId") != compareRecord.fields.CourseId)
                 || (existingRecord.getCellValue("Link") != compareRecord.fields.Link)
                 || (existingRecord.getCellValue("Points") != compareRecord.fields.Points)
                 || (existingRecord.getCellValue("Updated") != compareRecord.fields.Updated)
@@ -289,7 +297,7 @@ export class ClassroomSync extends React.Component {
                 var courses = response.result.courses;
                 courseTable.selectRecordsAsync().then(async function (query){
                     if (courses?.length > 0) {
-                        courses.forEach(async (course) => {
+                        await self.asyncForEach(courses, async (course) => {
                             var courseId = course.id;
                             console.log("course ID: " + courseId);
                             var courseRecord = {
@@ -304,7 +312,7 @@ export class ClassroomSync extends React.Component {
                                     'Link to Class': course.alternateLink
                                 }
                             };
-                            var existingRecord = query.records.find(record => record.getCellValue("CourseId") === courseRecord.fields.CourseId);
+                            var existingRecord = await query.records.find(record => record.getCellValue("CourseId") === courseRecord.fields.CourseId);
                             if (typeof (existingRecord) === typeof (undefined)) {
                                 console.log("record doesn't exist yet");
                                 newCourseList.push(courseRecord);
@@ -322,23 +330,29 @@ export class ClassroomSync extends React.Component {
                                     console.log("courses are equal");
                                 }
                             }
-                            self.getAssignments(courseId).then(async function() {
+                            await self.getAssignments(courseId).then(async function() {
                                 await self.delayAsync(50);
                             });
                         });
-                        query.unloadData();
+                        await query.unloadData();
                     }
                     else {
                         console.log("no courses found");
                     }
                     console.log("newCourseList created: " + JSON.stringify(newCourseList));
-                    self.syncTableRecords(newCourseList, updateCourseList, courseTable);
+                    await self.syncTableRecords(newCourseList, updateCourseList, courseTable);
                 });
                 
             });
         });
     }
 
+    async asyncForEach(array, callback){
+        for(let i = 0; i < array.length; i++)
+        {
+            await callback(array[i], i, array);
+        }
+    }
     /**
     * Print the names of the first 10 assignments the user has access to. If
     * no courses are found an appropriate message is printed.
@@ -346,7 +360,7 @@ export class ClassroomSync extends React.Component {
     async getAssignments(id) {
         var self = this;
         console.log("calling createTableIfNotExists from getAssignments");
-        self.createTableIfNotExists(tableType.ASSIGNMENT).then (async function (assignmentTable){
+        await self.createTableIfNotExists(tableType.ASSIGNMENT).then (async function (assignmentTable){
             const newAssignmentList = [];
             const updateAssignmentList = [];
             gapi.client.classroom.courses.courseWork.list({
@@ -355,8 +369,7 @@ export class ClassroomSync extends React.Component {
                 var assignments = response.result.courseWork;
                 const query = await assignmentTable.selectRecordsAsync();
                 if (assignments.length > 0) {
-                    for (var i = 0; i < assignments.length; i++) {
-                        var assignment = assignments[i];
+                    await self.asyncForEach(assignments, async (assignment) => {
                         //TODO: create syncMaterials
                         //var materials = assignments[i].materials;
                         //self.syncMaterials(materials);
@@ -368,6 +381,7 @@ export class ClassroomSync extends React.Component {
                                 'AssignmentId':parseInt(assignment.id),
                                 'Assignment':assignment.title,
                                 'Description':assignment.description,
+                                'CourseId': parseInt(id),
                                 'Topic': assignment.topicId,
                                 'Link': assignment.alternateLink,
                                 'Points': assignment.maxPoints,
@@ -393,7 +407,7 @@ export class ClassroomSync extends React.Component {
                                 console.log("assignments are equal");
                             }
                         }
-                    }
+                    });
                 }
                 else {
                     console.log('No assignments found.');
