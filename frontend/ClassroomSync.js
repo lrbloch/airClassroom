@@ -21,6 +21,7 @@ const courseStateType = {
     SUSPENDED: "Suspended"
 }
 
+
 export class ClassroomSync extends React.Component {
     
     
@@ -31,7 +32,6 @@ export class ClassroomSync extends React.Component {
             isLoggedIn: props.isLoggedIn,
             isUpdateInProgress: false,
             lastSynced: null
-            //base: props.base
         };
 
         // This binding is necessary to make `this` work in the callback
@@ -44,6 +44,7 @@ export class ClassroomSync extends React.Component {
         this.updateSigninStatus = this.updateSigninStatus.bind(this);
         this.createTableIfNotExists = this.createTableIfNotExists.bind(this);
         this.syncTableRecords = this.syncTableRecords.bind(this);
+        this.syncMaterials = this.syncMaterials.bind(this);
         this.delayAsync = this.delayAsync.bind(this);
         this.getCourses = this.getCourses.bind(this);
         this.getAssignments = this.getAssignments.bind(this);
@@ -174,7 +175,6 @@ export class ClassroomSync extends React.Component {
                 }
             }
 
-
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
             if (updateRecords?.length > 0) {
                 console.log("new courses");
@@ -193,8 +193,116 @@ export class ClassroomSync extends React.Component {
         }
     }
 
+    async syncMaterials(newMaterials, assignmentId) {
+        var self = this;
+        this.createTableIfNotExists(tableType.MATERIAL).then(async function (materialTable) {
+            const newMaterialList = [];
+            const updateMaterialList = [];
+            materialTable.selectRecordsAsync().then(async function (query){
+                if (newMaterials?.length > 0) {
+                    await self.asyncForEach(newMaterials, async (material) => {
+                        var materialType = material.link ? "Link" : material.driveFile ? "Drive File" : material.youtubeVideo ? "YouTube Video" : "Other";
+                        var materialRecord;
+                        switch(materialType)
+                        {
+                            case "Link":
+                                 // "link": {
+                                //     "url": "",
+                                //     "title": "Subtraction word problem: basketball (video) | Khan Academy",
+                                //     "thumbnailUrl": ""
+                                // }
+                                materialRecord = { 
+                                    fields: {
+                                        'Material': material.link.title ? material.link.title : "Untitled Link",
+                                        'Link': material.link.url,
+                                        'Image': [{
+                                            url: material.link.thumbnailUrl.replace("https://classroom.google.com/webthumbnail?url=", ""),
+                                        }],
+                                        'MaterialType': { name: materialType },
+                                        'AssignmentId' : parseInt(assignmentId)
+                                    }
+                                }
+                                console.log("Thumbnail URL: " + material.link.thumbnailUrl);
+                                console.log("Stored Image url: " + materialRecord.fields.Image[0].url);
+                                break;
+                            case "Drive File":
+                                // "driveFile": {
+                                //     "driveFile": {
+                                //         "id": "1F4WlfGx9kW78Xdh3Zr5MLmCxgN3P15lB",
+                                //         "title": "Mother's Day thank you letter: Due Fri May 8th, 2020",
+                                //         "alternateLink": "https://drive.google.com/drive/folders/1F4WlfGx9kW78Xdh3Zr5MLmCxgN3P15lB"
+                                //     },
+                                //     "shareMode": "VIEW"
+                                // }
+                                materialRecord = { 
+                                    fields: {
+                                        'Material': material.driveFile.driveFile.title ? material.driveFile.driveFile.title : "Untitled File",
+                                        'Link': material.driveFile.driveFile.alternateLink,
+                                        'Image': [{
+                                            url: material.driveFile.driveFile.alternateLink,
+                                        }],
+                                        'MaterialType': { name: materialType },
+                                        'AssignmentId' : parseInt(assignmentId)
+                                    }
+                                }
+                                break;
+                            case "YouTube Video":
+                                // "youtubeVideo": {
+                                //     "id": "WyhgubvRYF4",
+                                //     "title": "READ ALONG with MICHELLE OBAMA | The Gruffalo | PBS KIDS",
+                                //     "alternateLink": "https://www.youtube.com/watch?v=WyhgubvRYF4",
+                                //     "thumbnailUrl": "https://i.ytimg.com/vi/WyhgubvRYF4/default.jpg"
+                                // }
+                                materialRecord = { 
+                                    fields: {
+                                        'Material': material.youtubeVideo.title ? material.youtubeVideo.title : "Untitled Video",
+                                        'Link': material.youtubeVideo.alternateLink,
+                                        'Image': [{
+                                            url: material.youtubeVideo.thumbnailUrl,
+                                        }],
+                                        'MaterialType': { name: materialType },
+                                        'AssignmentId' : parseInt(assignmentId)
+                                    }
+                                }
+                                break;
+                            case "Other":
+                            default:
+                                console.error(`no matching type for this material: ${JSON.stringify(material)}`);
+                                return;
+                        }
+
+                        var existingRecord = await query.records.find(record => record.getCellValue("Material") === materialRecord.fields.Material);
+                        if (typeof (existingRecord) === typeof (undefined)) {
+                            console.log("material record doesn't exist yet");
+                            newMaterialList.push(materialRecord);
+                        }
+                        else {
+                            console.log("material record already exists");
+
+                            if (self.recordsAreNotEqual(tableType.MATERIAL, existingRecord, materialRecord)) {
+                                console.log("at least one field is different");
+                                materialRecord.id = existingRecord.id;
+                                updateMaterialList.push(materialRecord);
+                            }
+                            else {
+                                console.log("materials are equal");
+                            }
+                        }
+                    });
+                    await query.unloadData();
+                }
+                else {
+                    console.log("no materials found");
+                }
+                console.log("newMaterials created: " + JSON.stringify(newMaterialList));
+                await self.syncTableRecords(newMaterialList, updateMaterialList, materialTable);
+            });
+        });
+    }
+    
+    //TODO: Add update in case fields of old table don't match these fields
     async createTableIfNotExists(tableName) {
-        console.log("Creating Table tableName: " + tableName);
+        console.log("Creating Table, tableName: " + tableName);
         let table = this.props.base.getTableByNameIfExists(tableName);
         if (table == null) {
             var fields = [];
@@ -255,7 +363,7 @@ export class ClassroomSync extends React.Component {
                         ];
                     }
                     break;
-                case tableType.MATERIAAL:
+                case tableType.MATERIAL:
                     {
                         // "link": {
                         //     "url": "https://www.khanacademy.org/math/early-math/cc-early-math-add-sub-100/cc-early-math-more-fewer-100/v/fewer-word-problems",
@@ -277,14 +385,8 @@ export class ClassroomSync extends React.Component {
                         //     "thumbnailUrl": "https://i.ytimg.com/vi/WyhgubvRYF4/default.jpg"
                         // }
                         fields = [
-                            // MaterialId will be the primary field of the table.
-                            {
-                                name: 'MaterialId', type: FieldType.NUMBER,
-                                options: {
-                                    precision: 0,
-                                }
-                            },
-                            {name: 'Title', type: FieldType.SINGLE_LINE_TEXT},
+                            // Material will be the primary field of the table.
+                            {name: 'Material', type: FieldType.SINGLE_LINE_TEXT},
                             {name: 'Link', type: FieldType.URL},
                             {name: 'Image', type: FieldType.MULTIPLE_ATTACHMENTS},
                             {name: 'MaterialType', type:FieldType.SINGLE_SELECT, options: {
@@ -294,7 +396,13 @@ export class ClassroomSync extends React.Component {
                                     { name: "YouTube Video" },
                                     { name: "Other" }
                                 ]
-                            }}
+                            }},
+                            {
+                                name: 'AssignmentId', type: FieldType.NUMBER,
+                                options: {
+                                    precision: 0,
+                                }
+                            }
                         ];
                     }
                     break;
@@ -326,7 +434,8 @@ export class ClassroomSync extends React.Component {
                     }
                     break;
                 default:
-                    break;
+                    console.error(`no tableType matches ${tableName}`);
+                    return;
             }
             console.log(`creating ${tableName} table`);
             if (this.props.base.unstable_hasPermissionToCreateTable(tableName, fields)) {
@@ -350,7 +459,7 @@ export class ClassroomSync extends React.Component {
                 || (existingRecord.getCellValue("Link to Class") != compareRecord.fields["Link to Class"]);
             case tableType.ASSIGNMENT:
                 return ((existingRecord.getCellValue("AssignmentId") != compareRecord.fields.AssignmentId)
-                || (existingRecord.getCellValue("Assignment") != compareRecord.fields["Assignment"])
+                || (existingRecord.getCellValue("Assignment") != compareRecord.fieldsAssignment)
                 || (existingRecord.getCellValue("Description") != compareRecord.fields.Description)
                 || (existingRecord.getCellValue("Topic") != compareRecord.fields.Topic)
                 || (existingRecord.getCellValue("CourseId") != compareRecord.fields.CourseId)
@@ -358,8 +467,14 @@ export class ClassroomSync extends React.Component {
                 || (existingRecord.getCellValue("Points") != compareRecord.fields.Points)
                 || (existingRecord.getCellValue("Updated") != compareRecord.fields.Updated)
                 || (existingRecord.getCellValue("Due") != compareRecord.fields.DescriptionHeading));
+            case tableType.MATERIAL:
+                return ((existingRecord.getCellValue("Material")!= compareRecord.fields.Material)
+                    || (existingRecord.getCellValue("Link")!= compareRecord.fields.Link)
+                    || (existingRecord.getCellValue("Image").url!= compareRecord.fields.Image.url)
+                    || (existingRecord.getCellValue("MaterialType")!= compareRecord.fields.MaterialType)
+                )
             default:
-                return false;
+                return true;
         }
         
     }
@@ -449,10 +564,10 @@ export class ClassroomSync extends React.Component {
                 if (assignments.length > 0) {
                     await self.asyncForEach(assignments, async (assignment) => {
                         //TODO: create syncMaterials
-                        //var materials = assignments[i].materials;
-                        //self.syncMaterials(materials);
+                        var materials = assignment.materials;
+                        await self.syncMaterials(materials, assignment.id);
                         //TODO: create syncTopics
-                        //var topicId = assignments[i].topicId;
+                        //var topicId = assignment.topic?.topicId;
                         //self.syncTopics(topicId);
                         var assignmentRecord = {
                             fields: {
@@ -460,7 +575,7 @@ export class ClassroomSync extends React.Component {
                                 'Assignment':assignment.title,
                                 'Description':assignment.description,
                                 'CourseId': parseInt(id),
-                                'TopicId': assignment.topicId,
+                                'TopicId': parseInt(assignment.topicId),
                                 'Link': assignment.alternateLink,
                                 'Points': assignment.maxPoints,
                                 'Updated':assignment.updateTime,
