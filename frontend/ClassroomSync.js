@@ -5,9 +5,20 @@ import { GOOGLE_API_ENDPOINT, API_KEY, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RE
 
 /** @enum {string} */
 const tableType = {
-    COURSE: "Course",
+    COURSE: "Courses",
     ASSIGNMENT: "Assignments",
-    TOPIC: "Topic",
+    TOPIC: "Topics",
+    MATERIAL: "Materials"
+}
+
+/** @enum {string} */
+const courseStateType = {
+    COURSE_STATE_UNSPECIFIED: "Other",
+    ACTIVE: "Active",
+    ARCHIVED: "Archived",
+    PROVISIONED: "Provisioned",
+    DECLINED: "Declined",
+    SUSPENDED: "Suspended"
 }
 
 export class ClassroomSync extends React.Component {
@@ -207,12 +218,12 @@ export class ClassroomSync extends React.Component {
                         {
                             name: 'CourseState', type: FieldType.SINGLE_SELECT, options: {
                                 choices: [
-                                    { name: "COURSE_STATE_UNSPECIFIED" },
-                                    { name: "ACTIVE" },
-                                    { name: "ARCHIVED" },
-                                    { name: "PROVISIONED" },
-                                    { name: "DECLINED" },
-                                    { name: "SUSPENDED" }
+                                    { name: "Other" }, //COURSE_STATE_UNSPECIFIED
+                                    { name: "Active" },
+                                    { name: "Archived" },
+                                    { name: "Provisioned" },
+                                    { name: "Declined" },
+                                    { name: "Suspended" }
                                 ]
                             }
                         },
@@ -223,7 +234,7 @@ export class ClassroomSync extends React.Component {
                 case tableType.ASSIGNMENT:
                     {
                         fields = [
-                            // CourseId will be the primary field of the table.
+                            // AssignmentId will be the primary field of the table.
                             {
                                 name: 'AssignmentId', type: FieldType.NUMBER,
                                 options: {
@@ -234,16 +245,83 @@ export class ClassroomSync extends React.Component {
                             {name: 'Description', type: FieldType.MULTILINE_TEXT},
                             {name: 'Materials', type: FieldType.SINGLE_LINE_TEXT},
                             {
-                                name: 'CourseId', type: FieldType.NUMBER,
-                                options: {
-                                    precision: 0,
-                                }
+                                name: 'CourseId', type: FieldType.NUMBER, options: {precision:0}
                             },
-                            {name: 'Topic', type: FieldType.SINGLE_LINE_TEXT},
+                            {name: 'TopicId', type: FieldType.NUMBER, options: {precision: 0}},
                             {name: 'Link', type: FieldType.URL},
                             {name: 'Points', type: FieldType.NUMBER, options: {precision: 0}},
                             { name: 'Updated', type: FieldType.SINGLE_LINE_TEXT },
                             { name: 'Due', type: FieldType.SINGLE_LINE_TEXT }
+                        ];
+                    }
+                    break;
+                case tableType.MATERIAAL:
+                    {
+                        // "link": {
+                        //     "url": "https://www.khanacademy.org/math/early-math/cc-early-math-add-sub-100/cc-early-math-more-fewer-100/v/fewer-word-problems",
+                        //     "title": "Subtraction word problem: basketball (video) | Khan Academy",
+                        //     "thumbnailUrl": "https://classroom.google.com/webthumbnail?url=https://www.khanacademy.org/math/early-math/cc-early-math-add-sub-100/cc-early-math-more-fewer-100/v/fewer-word-problems"
+                        // }
+                        // "driveFile": {
+                        //     "driveFile": {
+                        //         "id": "1F4WlfGx9kW78Xdh3Zr5MLmCxgN3P15lB",
+                        //         "title": "Mother's Day thank you letter: Due Fri May 8th, 2020",
+                        //         "alternateLink": "https://drive.google.com/drive/folders/1F4WlfGx9kW78Xdh3Zr5MLmCxgN3P15lB"
+                        //     },
+                        //     "shareMode": "VIEW"
+                        // }
+                        // "youtubeVideo": {
+                        //     "id": "WyhgubvRYF4",
+                        //     "title": "READ ALONG with MICHELLE OBAMA | The Gruffalo | PBS KIDS",
+                        //     "alternateLink": "https://www.youtube.com/watch?v=WyhgubvRYF4",
+                        //     "thumbnailUrl": "https://i.ytimg.com/vi/WyhgubvRYF4/default.jpg"
+                        // }
+                        fields = [
+                            // MaterialId will be the primary field of the table.
+                            {
+                                name: 'MaterialId', type: FieldType.NUMBER,
+                                options: {
+                                    precision: 0,
+                                }
+                            },
+                            {name: 'Title', type: FieldType.SINGLE_LINE_TEXT},
+                            {name: 'Link', type: FieldType.URL},
+                            {name: 'Image', type: FieldType.MULTIPLE_ATTACHMENTS},
+                            {name: 'MaterialType', type:FieldType.SINGLE_SELECT, options: {
+                                choices: [
+                                    { name: "Link" },
+                                    { name: "Drive File" },
+                                    { name: "YouTube Video" },
+                                    { name: "Other" }
+                                ]
+                            }}
+                        ];
+                    }
+                    break;
+                case tableType.TOPIC:
+                    {
+                        fields = [
+                            // TopicId will be the primary field of the table.
+                            {
+                                name: 'TopicId', type: FieldType.NUMBER,
+                                options: {
+                                    precision: 0,
+                                }
+                            },
+                            {name: 'Topic', type: FieldType.SINGLE_LINE_TEXT },
+                            {name: 'Topic JSON', type: FieldType.MULTILINE_TEXT},
+                            {
+                                name: 'AssignmentIds', type: FieldType.NUMBER,
+                                options: {
+                                    precision: 0,
+                                }
+                            },
+                            {
+                                name: 'CourseIds', type: FieldType.NUMBER,
+                                options: {
+                                    precision: 0,
+                                }
+                            },
                         ];
                     }
                     break;
@@ -308,7 +386,7 @@ export class ClassroomSync extends React.Component {
                                     'DescriptionHeading': course.descriptionHeading,
                                     'Description': course.description,
                                     'Room': course.room,
-                                    'CourseState': { name: course.courseState },
+                                    'CourseState': { name: courseStateType[course.courseState] },
                                     'Link to Class': course.alternateLink
                                 }
                             };
@@ -382,7 +460,7 @@ export class ClassroomSync extends React.Component {
                                 'Assignment':assignment.title,
                                 'Description':assignment.description,
                                 'CourseId': parseInt(id),
-                                'Topic': assignment.topicId,
+                                'TopicId': assignment.topicId,
                                 'Link': assignment.alternateLink,
                                 'Points': assignment.maxPoints,
                                 'Updated':assignment.updateTime,
