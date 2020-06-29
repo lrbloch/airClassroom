@@ -325,7 +325,6 @@ export class ClassroomSync extends React.Component {
                             if (typeof (existingRecord) === typeof (undefined)) {
                                 console.log("topic record doesn't exist yet");
                                 newTopicList.push(topicRecord);
-                                topicIds[topicRecord.fields.TopicId] = topicRecord.fields.Topic;
                             }
                             else {
                                 console.log("topic record already exists");
@@ -334,12 +333,12 @@ export class ClassroomSync extends React.Component {
                                     console.log("at least one field is different");
                                     topicRecord.id = existingRecord.id;
                                     updateTopicList.push(topicRecord);
-                                    topicIds[topicRecord.fields.TopicId] = topicRecord.fields.Topic;
                                 }
                                 else {
                                     console.log("topics are equal");
                                 }
                             }
+                            topicIds[topicRecord.fields.TopicId] = topicRecord.fields.Topic;
                         });
                         await query.unloadData();
                     }
