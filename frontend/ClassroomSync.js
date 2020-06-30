@@ -1,7 +1,7 @@
 import { Loader, Button } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
 import { FieldType } from '@airtable/blocks/models';
-import { ShowRecords } from './ShowRecords';
+import { ShowAssignments } from './ShowAssignments';
 import { GOOGLE_API_ENDPOINT, API_KEY, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE} from './index';
 
 /** @enum {string} */
@@ -33,7 +33,8 @@ export class ClassroomSync extends React.Component {
             status: 'start',
             isLoggedIn: props.isLoggedIn,
             isUpdateInProgress: false,
-            lastSynced: null
+            lastSynced: null,
+            assignmentRecords: null
         };
 
         // This binding is necessary to make `this` work in the callback
@@ -637,7 +638,6 @@ export class ClassroomSync extends React.Component {
                                 if (self.recordsAreNotEqual(tableType.ASSIGNMENT, existingRecord, assignmentRecord)) {
                                     console.log("at least one field is different");
                                     assignmentRecord.id = existingRecord.id;
-                                    console.log("assignmentRecord: " + JSON.stringify(assignmentRecord));
                                     updateAssignmentList.push(assignmentRecord);
                                 }
                                 else {
@@ -649,7 +649,13 @@ export class ClassroomSync extends React.Component {
                 else {
                     console.log('No assignments found.');
                 }
+                query.unloadData();
                 await self.syncTableRecords(newAssignmentList, updateAssignmentList, assignmentTable);
+                const newQuery = await assignmentTable.selectRecordsAsync();
+                var allAssignments = await newQuery.records;
+                console.log("allAssignments: " + allAssignments);
+                this.setState({'assignmentRecords' : allAssignments});
+                newQuery.unloadData();
     }
 
     getTopicNameFromId(topicId) {
@@ -724,7 +730,7 @@ export class ClassroomSync extends React.Component {
                                 id="signout_button"
                                 style={isLoggedIn ? { display: "block" } : { display: "none" }}
                             >Sign Out</Button>
-                        <ShowRecords style={isLoggedIn ? { display: "block" } : { display: "none" }} base={this.props.base}/>
+                        {(this.state.lastSynced != null && this.state.isLoggedIn) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.state.assignmentRecords}/>) : (<div>no data</div>)}
                         </Fragment>
                     )}
 
