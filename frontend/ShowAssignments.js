@@ -1,19 +1,13 @@
-import { Loader, Button } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
-import { RecordCard, useBase, useRecords } from "@airtable/blocks/ui";
-import { render } from 'react-dom';
+import { RecordCard} from "@airtable/blocks/ui";
 
-export class ShowAssignments extends React.Component {
+function ShowAssignments(props){
 
-  constructor(props) {
-    super(props);
-  }
-
-  do_load(){
-  }
-
-  render() {
-    return (<><Fragment><RecordCard record={this.props.assignmentRecords[0]}> </RecordCard></Fragment></>);
-  }
-
+    return (
+    <Fragment>
+      <RecordCard record={props.assignmentRecords[0]}> </RecordCard>
+    </Fragment>
+    );
 }
+
+export default ShowAssignments;

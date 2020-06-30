@@ -1,7 +1,7 @@
 import { Loader, Button } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
 import { FieldType } from '@airtable/blocks/models';
-import { ShowAssignments } from './ShowAssignments';
+import ShowAssignments from './ShowAssignments';
 import { GOOGLE_API_ENDPOINT, API_KEY, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE} from './index';
 
 /** @enum {string} */
