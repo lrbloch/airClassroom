@@ -2,6 +2,7 @@
 import { initializeBlock, useBase, useRecords, Box } from '@airtable/blocks/ui';
 import React, { useState } from 'react';
 import { ClassroomSync } from './ClassroomSync';
+import { tableType } from './ClassroomSync';
 const credentials = require('../../../../../credentials.json')
 
 // These values match the base for this example: https://airtable.com/shrIho8SB7RhrlUQL
@@ -31,6 +32,8 @@ function AirClassroomBlock() {
     const base = useBase();
     const table = base.getTableByName(TABLE_NAME);
     const records = useRecords(table);
+    const assignmentTable = base.getTableByNameIfExists(tableType.ASSIGNMENT);
+    const assignments = useRecords(assignmentTable);
 
     return (
         <Box
@@ -45,7 +48,7 @@ function AirClassroomBlock() {
         justifyContent="center"
         alignItems="center"
         >
-            <ClassroomSync base={base}/>
+            <ClassroomSync base={base} assignments={assignments}/>
         </Box>
     );
 }

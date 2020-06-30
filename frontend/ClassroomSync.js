@@ -5,7 +5,7 @@ import ShowAssignments from './ShowAssignments';
 import { GOOGLE_API_ENDPOINT, API_KEY, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE} from './index';
 
 /** @enum {string} */
-const tableType = {
+export const tableType = {
     COURSE: "Courses",
     ASSIGNMENT: "Assignments",
     TOPIC: "Topics",
@@ -34,7 +34,7 @@ export class ClassroomSync extends React.Component {
             isLoggedIn: props.isLoggedIn,
             isUpdateInProgress: false,
             lastSynced: null,
-            assignmentRecords: null
+            assignmentRecords: props.assignments
         };
 
         // This binding is necessary to make `this` work in the callback
@@ -55,7 +55,6 @@ export class ClassroomSync extends React.Component {
         this.asyncForEach = this.asyncForEach.bind(this);
         this.syncTopics = this.syncTopics.bind(this);
         this.getTopicNameFromId = this.getTopicNameFromId.bind(this);
-        this.clearBody = this.clearBody.bind(this);
         // Promise Interface can ensure load the script only once.
         this.gapi_script = this.load_script(GOOGLE_API_ENDPOINT);
     }
@@ -69,30 +68,6 @@ export class ClassroomSync extends React.Component {
         });
     }
 
-
-
-    /**
-     * Append a pre element to the body containing the given message
-     * as its text node. Used to display the results of the API call.
-     *
-     * @param {string} message Text to be placed in pre element.
-     */
-    appendPre(message) {
-        var pre = document.getElementById('content');
-        var textContent = document.createTextNode(message + '\n');
-        pre.appendChild(textContent);
-    }
-    /**
-     * Clear the body containing the given message
-     * as its text node. Used to display the results of the API call.
-     *
-     */
-    clearBody() {
-        var pre = document.getElementById('content');
-        if (pre) {
-            pre.innerHTML = '';
-        }
-    }
     /**
      *  On load, called to load the auth2 library and API client library.
      */
@@ -135,7 +110,7 @@ export class ClassroomSync extends React.Component {
             self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
             self.syncWithGoogleClassroom();
         }, function (error) {
-            appendPre(JSON.stringify(error, null, 2));
+            alert(JSON.stringify(error, null, 2));
         });
     }
     /**
@@ -146,7 +121,6 @@ export class ClassroomSync extends React.Component {
         console.log("isSignedIn: " + isSignedIn);
         this.setState({ 'isLoggedIn': isSignedIn });
     }
-
 
     async syncWithGoogleClassroom() {
         // keep track of whether we have up update currently in progress - if there is, we want to hide
@@ -686,7 +660,6 @@ export class ClassroomSync extends React.Component {
         var self = this;
         gapi.auth2.getAuthInstance().signOut().then(function () {
             self.setState({ 'isLoggedIn': false });
-            self.clearBody();
         });
     }
 
@@ -706,8 +679,10 @@ export class ClassroomSync extends React.Component {
                     <Loader />
                 ) : (
                         <Fragment>
+                            {(this.state.assignmentRecords != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.state.assignmentRecords}/>) : (<></>)}
                             {(this.state.lastSynced != null && this.state.isLoggedIn) ? 
                             (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
+                            <br></br>
                             <Button
                                 variant="primary"
                                 onClick={this.handleAuthClick}
@@ -730,7 +705,6 @@ export class ClassroomSync extends React.Component {
                                 id="signout_button"
                                 style={isLoggedIn ? { display: "block" } : { display: "none" }}
                             >Sign Out</Button>
-                        {(this.state.lastSynced != null && this.state.isLoggedIn) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.state.assignmentRecords}/>) : (<div>no data</div>)}
                         </Fragment>
                     )}
 
