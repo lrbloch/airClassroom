@@ -1,6 +1,7 @@
 import { Loader, Button } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
 import { FieldType } from '@airtable/blocks/models';
+import { ShowRecords } from './ShowRecords';
 import { GOOGLE_API_ENDPOINT, API_KEY, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE} from './index';
 
 /** @enum {string} */
@@ -695,7 +696,6 @@ export class ClassroomSync extends React.Component {
 
         return (
             <>
-
                 {this.state.isUpdateInProgress ? (
                     <Loader />
                 ) : (
@@ -724,8 +724,7 @@ export class ClassroomSync extends React.Component {
                                 id="signout_button"
                                 style={isLoggedIn ? { display: "block" } : { display: "none" }}
                             >Sign Out</Button>
-
-
+                        <ShowRecords style={isLoggedIn ? { display: "block" } : { display: "none" }} base={this.props.base}/>
                         </Fragment>
                     )}
 
