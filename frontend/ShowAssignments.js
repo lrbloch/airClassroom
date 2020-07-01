@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { Box, Heading, expandRecord, Icon } from "@airtable/blocks/ui";
 
-function showIndividualAssignment({record, onClick}){
+function ShowIndividualAssignment({record, onClick}){
   return (
     <Fragment>
       <br></br>
@@ -82,7 +82,7 @@ export class ShowAssignments extends React.Component {
         <OverDueAssignments records={this.props.assignmentRecords} onClick={this.showHideAssignment}/>
       ) : (<></>)}
       {this.state.showIndividualAssignment ? (
-        <showIndividualAssignment record={this.state.selectedAssignment} onClick={this.showHideAssignment}/>
+        <ShowIndividualAssignment record={this.state.selectedAssignment} onClick={this.showHideAssignment}/>
       ) : (<></>)}
       </>
     );
