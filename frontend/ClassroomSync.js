@@ -384,7 +384,17 @@ export class ClassroomSync extends React.Component {
                             { name: 'Link', type: FieldType.URL },
                             { name: 'Points', type: FieldType.NUMBER, options: { precision: 0 } },
                             { name: 'Updated', type: FieldType.SINGLE_LINE_TEXT },
-                            { name: 'Due', type: FieldType.SINGLE_LINE_TEXT }
+                            { name: 'Due', type: FieldType.DATE_TIME, options: 
+                                {
+                                    dateFormat: {
+                                        name: 'us'
+                                    },
+                                    timeFormat: {
+                                        name: '12hour'
+                                    },
+                                    timeZone: 'client',
+                                }
+                            }
                         ];
                     }
                     break;
@@ -588,6 +598,10 @@ export class ClassroomSync extends React.Component {
                 await self.syncMaterials(materials, assignment.id);
                 var topicName = self.getTopicNameFromId(assignment.topicId);
                 console.log("topicName: " + topicName);
+                if(assignment.dueDate)
+                {
+                    var dueDateTime = new Date(Date.UTC(assignment.dueDate.year, assignment.dueDate.month-1, assignment.dueDate.day, assignment.dueTime.hours, assignment.dueTime.minutes, 0, 0));
+                }
                 var assignmentRecord = {
                     fields: {
                         'AssignmentId': parseInt(assignment.id),
@@ -598,7 +612,7 @@ export class ClassroomSync extends React.Component {
                         'Link': assignment.alternateLink,
                         'Points': assignment.maxPoints,
                         'Updated': assignment.updateTime,
-                        'Due': assignment.dueDate ? `${assignment.dueDate.month}/${assignment.dueDate.day}/${assignment.dueDate.year} ${assignment.dueTime.hours}:${assignment.dueTime.minutes}` : '',
+                        'Due': assignment.dueDate ? dueDateTime.toISOString() : null
                     }
                 };
                 var existingRecord = query.records.find(record => record.getCellValue('AssignmentId') === assignmentRecord.fields.AssignmentId);
@@ -679,6 +693,7 @@ export class ClassroomSync extends React.Component {
                 ) : (
                         <Fragment>
                             {(this.state.assignmentRecords != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.state.assignmentRecords} />) : (<></>)}
+                            
                             {(this.state.lastSynced != null && this.state.isLoggedIn) ?
                                 (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
                             <br></br>
