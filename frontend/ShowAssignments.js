@@ -1,7 +1,30 @@
 import React, { Fragment } from 'react';
 import { Box, Heading, expandRecord, Icon } from "@airtable/blocks/ui";
 
-function OverDueAssignments({records}){
+function ShowIndividualRecord({record, onClick}){
+  return (
+    <Fragment>
+      <br></br>
+      <Box>
+        <Heading>{record.getCellValue("Assignment")}</Heading> 
+      </Box>
+      <Box margin={2} padding={3} border="thick" borderRadius={5} overflow="auto">
+          <Box overflow="auto" paddingRight={3}>
+            <a
+            style={{cursor: 'pointer', flex: 'auto', padding: 8}}
+            onClick={() => {
+                onClick(record);
+            }}
+            >
+                {record.getCellValue("Due")}
+            </a>
+          </Box>
+      </Box>
+    </Fragment>
+  );
+}
+
+function OverDueAssignments({records, onClick}){
   var filteredRecords = records.filter((record) => record.getCellValue("Due") != null);
   const recordsDisplay = filteredRecords.length > 0 ? filteredRecords.map((record, index) => {
     var dueDate = record.getCellValue("Due") ? new Date(record.getCellValue("Due")) : null;
@@ -20,7 +43,7 @@ function OverDueAssignments({records}){
       ><a
         style={{cursor: 'pointer', flex: 'auto', padding: 8}}
         onClick={() => {
-            expandRecord(record);
+            onClick(record);
         }}
         >
         {dueDate?.toLocaleString()}
@@ -44,14 +67,44 @@ function OverDueAssignments({records}){
     );
 }
 
+export class ShowAssignments extends React.Component {
 
-function ShowAssignments(props){
+  constructor(props) {
+    super(props);
+    this.state = {
+      showOverdue: true,
+      showIndividualRecord: false,
+      assignmentRecord: null
+    };
+    this.showHideRecord = this.showHideRecord.bind(this);
+  }
 
+  render() {
     return (
-        <OverDueAssignments records={props.assignmentRecords}/>
-        // <DueToday records={props.assignmentRecords}/>
-        // <DueComingUp records={props.assignmentRecords}/>
+      <>
+      {this.state.showOverdue ? (
+        <OverDueAssignments records={this.props.assignmentRecords} onClick={this.showHideRecord}/>
+      ) : (<></>)}
+      {this.state.showIndividualRecord ? (
+        <ShowIndividualRecord record={this.state.assignmentRecord} onClick={this.showHideRecord}/>
+      ) : (<></>)}
+      </>
     );
+  }
+
+  showHideRecord(record){
+    console.log("SHOW RECORD: " + record);
+    if(!this.state.showIndividualRecord){
+      this.setState({'showOverdue': false});
+      this.setState({'showIndividualRecord': true});
+      this.setState({'assignmentRecord': record})
+    }
+    else{
+      this.setState({'showOverdue': true});
+      this.setState({'showIndividualRecord': false});
+      this.setState({'assignmentRecord': null})
+    }
+  }
 }
 
 export default ShowAssignments;
