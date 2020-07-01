@@ -1,15 +1,12 @@
 import React, { Fragment } from 'react';
 import { Box, Heading, expandRecord, Icon } from "@airtable/blocks/ui";
 
-function ShowIndividualRecord({record, onClick}){
+function showIndividualAssignment({record, onClick}){
   return (
     <Fragment>
       <br></br>
-      <Box>
-        <Heading>{record.getCellValue("Assignment")}</Heading> 
-      </Box>
       <Box margin={2} padding={3} border="thick" borderRadius={5} overflow="auto">
-          <Box overflow="auto" paddingRight={3}>
+        <Heading>{record.getCellValue("Assignment")}</Heading> 
             <a
             style={{cursor: 'pointer', flex: 'auto', padding: 8}}
             onClick={() => {
@@ -18,7 +15,6 @@ function ShowIndividualRecord({record, onClick}){
             >
                 {record.getCellValue("Due")}
             </a>
-          </Box>
       </Box>
     </Fragment>
   );
@@ -73,36 +69,36 @@ export class ShowAssignments extends React.Component {
     super(props);
     this.state = {
       showOverdue: true,
-      showIndividualRecord: false,
-      assignmentRecord: null
+      showIndividualAssignment: false,
+      selectedAssignment: null
     };
-    this.showHideRecord = this.showHideRecord.bind(this);
+    this.showHideAssignment = this.showHideAssignment.bind(this);
   }
 
   render() {
     return (
       <>
       {this.state.showOverdue ? (
-        <OverDueAssignments records={this.props.assignmentRecords} onClick={this.showHideRecord}/>
+        <OverDueAssignments records={this.props.assignmentRecords} onClick={this.showHideAssignment}/>
       ) : (<></>)}
-      {this.state.showIndividualRecord ? (
-        <ShowIndividualRecord record={this.state.assignmentRecord} onClick={this.showHideRecord}/>
+      {this.state.showIndividualAssignment ? (
+        <showIndividualAssignment record={this.state.selectedAssignment} onClick={this.showHideAssignment}/>
       ) : (<></>)}
       </>
     );
   }
 
-  showHideRecord(record){
-    console.log("SHOW RECORD: " + record);
-    if(!this.state.showIndividualRecord){
+  showHideAssignment(record){
+    console.log("SHOW Assignment: " + record);
+    if(!this.state.showIndividualAssignment){
       this.setState({'showOverdue': false});
-      this.setState({'showIndividualRecord': true});
-      this.setState({'assignmentRecord': record})
+      this.setState({'showIndividualAssignment': true});
+      this.setState({'selectedAssignment': record})
     }
     else{
       this.setState({'showOverdue': true});
-      this.setState({'showIndividualRecord': false});
-      this.setState({'assignmentRecord': null})
+      this.setState({'showIndividualAssignment': false});
+      this.setState({'selectedAssignment': null})
     }
   }
 }
