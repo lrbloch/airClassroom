@@ -33,8 +33,7 @@ export class ClassroomSync extends React.Component {
             status: 'start',
             isLoggedIn: props.isLoggedIn,
             isUpdateInProgress: false,
-            lastSynced: null,
-            assignmentRecords: props.assignments
+            lastSynced: null
         };
 
         // This binding is necessary to make `this` work in the callback
@@ -192,15 +191,15 @@ export class ClassroomSync extends React.Component {
                             fields: {
                                 'Material': material.link.title ? material.link.title : "Untitled Link",
                                 'Link': material.link.url,
-                                'Image': [{
-                                    url: material.link.thumbnailUrl.replace("https://classroom.google.com/webthumbnail?url=", ""),
-                                }],
                                 'MaterialType': { name: materialType },
                                 'AssignmentId': parseInt(assignmentId)
                             }
                         }
-                        console.log("Thumbnail URL: " + material.link.thumbnailUrl);
-                        console.log("Stored Image url: " + materialRecord.fields.Image[0].url);
+                        if(material.link.thumbnailUrl){
+                            materialRecord.fields['Image'] = [{
+                                url: material.link.thumbnailUrl.replace("https://classroom.google.com/webthumbnail?url=", ""),
+                            }];
+                        }
                         break;
                     case "Drive File":
                         // "driveFile": {
@@ -501,7 +500,7 @@ export class ClassroomSync extends React.Component {
             case tableType.MATERIAL:
                 return ((existingRecord.getCellValue("Material") != compareRecord.fields.Material)
                     || (existingRecord.getCellValue("Link") != compareRecord.fields.Link)
-                    || (existingRecord.getCellValue("Image").url != compareRecord.fields.Image.url)
+                    || (existingRecord.getCellValue("Image")?.url != compareRecord.fields.Image?.url)
                     || (existingRecord.getCellValue("MaterialType") != compareRecord.fields.MaterialType));
             case tableType.TOPIC:
                 return ((existingRecord.getCellValue("Topic") != compareRecord.fields.Topic)
@@ -638,11 +637,6 @@ export class ClassroomSync extends React.Component {
         }
         query.unloadData();
         await self.syncTableRecords(newAssignmentList, updateAssignmentList, assignmentTable);
-        const newQuery = await assignmentTable.selectRecordsAsync();
-        var allAssignments = await newQuery.records;
-        console.log("allAssignments: " + allAssignments);
-        this.setState({ 'assignmentRecords': allAssignments });
-        newQuery.unloadData();
     }
 
     getTopicNameFromId(topicId) {
@@ -692,7 +686,7 @@ export class ClassroomSync extends React.Component {
                     <Loader />
                 ) : (
                         <Fragment>
-                            {(this.state.assignmentRecords != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.state.assignmentRecords} />) : (<></>)}
+                            {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments}/>) : (<></>)}
                             
                             {(this.state.lastSynced != null && this.state.isLoggedIn) ?
                                 (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
