@@ -29,7 +29,7 @@ function ShowIndividualAssignment({record, onClick}){
   );
 }
 
-function OverDueAssignments({records, onClick, toggleShow, showHide, assignmentDue}){
+function DisplayAssignmentList({records, onClick, toggleShow, showHide, assignmentDue}){
   var filteredRecords = filterRecords(records, assignmentDue);
   const recordsDisplay = (filteredRecords !=null && filteredRecords.length > 0) ? filteredRecords.map((record, index) => {
       return (
@@ -43,21 +43,22 @@ function OverDueAssignments({records, onClick, toggleShow, showHide, assignmentD
           alignItems="center"
           overflowY="auto"
           key={index}
+          border="thick"
       ><a
         style={{cursor: 'pointer', flex: 'auto', padding: 8}}
         onClick={() => {
             onClick(record);
         }}
         >
+        {record.primaryCellValueAsString || 'Untitled Assignment'}
+        , 
         {moment(record.getCellValue("Due")).format("MMM d")}
-        {/* {record.primaryCellValueAsString || 'Unnamed record'} */}
       </a></Box>)
     }) : null;
 
     return (
       <Fragment>
         <br></br>
-        <Box>
           <a
           style={{cursor: 'pointer', flex: 'auto', padding: 8}}
           onClick={() => {
@@ -67,14 +68,11 @@ function OverDueAssignments({records, onClick, toggleShow, showHide, assignmentD
               <Icon name={showHide ? "chevronUp" : "chevronDown"} size={20}/>
             </Heading> 
           </a>
-        </Box>
-        {showHide ?
+        {showHide && recordsDisplay != null ?
         (
-        <Box margin={2} padding={3} border="thick" borderRadius={5} overflow="auto">
-            <Box overflow="auto" paddingRight={3}>
-                {recordsDisplay}
-            </Box>
-        </Box>
+          <Box position="relative" height="auto" overflow="auto">
+            {recordsDisplay}
+          </Box>
         )
         : (<></>) }
       </Fragment>
@@ -107,9 +105,7 @@ export class ShowAssignments extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      showOverdue: true,
-      showDueToday: true,
-      showUpcoming: true,
+      showLists: true,
       showOverdueList: false,
       showTodayList: false,
       showUpcomingList: false,
@@ -123,18 +119,16 @@ export class ShowAssignments extends React.Component {
   render() {
     return (
       <>
-      {this.state.showOverdue ? (
-        <OverDueAssignments records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
-      ) : (<></>)}
-      {this.state.showDueToday ? (
-        <OverDueAssignments records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
-      ) : (<></>)}
-      {this.state.showUpcoming ? (
-        <OverDueAssignments records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
-      ) : (<></>)}
-      {this.state.showIndividualAssignment ? (
-        <ShowIndividualAssignment record={this.state.selectedAssignment} onClick={this.showHideAssignment}/>
-      ) : (<></>)}
+        {this.state.showLists ? (
+          <Fragment>
+            <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
+            <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
+            <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
+          </Fragment>
+        ) : (<></>)}
+        {this.state.showIndividualAssignment ? (
+          <ShowIndividualAssignment record={this.state.selectedAssignment} onClick={this.showHideAssignment}/>
+        ) : (<></>)}
       </>
     );
   }
@@ -142,16 +136,12 @@ export class ShowAssignments extends React.Component {
   showHideAssignment(record){
     console.log("SHOW Assignment: " + record);
     if(!this.state.showIndividualAssignment){
-      this.setState({'showOverdue': false});
-      this.setState({'showDueToday': false});
-      this.setState({'showUpcoming': false});
+      this.setState({'showLists': false});
       this.setState({'showIndividualAssignment': true});
       this.setState({'selectedAssignment': record})
     }
     else{
-      this.setState({'showOverdue': true});
-      this.setState({'showDueToday': true});
-      this.setState({'showUpcoming': false});
+      this.setState({'showLists': true});
       this.setState({'showIndividualAssignment': false});
       this.setState({'selectedAssignment': null})
     }
