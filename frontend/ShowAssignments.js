@@ -29,75 +29,94 @@ function ShowIndividualAssignment({record, onClick}){
   );
 }
 
-function DisplayAssignmentList({records, onClick, toggleShow, showHide, assignmentDue}){
-  var filteredRecords = filterRecords(records, assignmentDue);
-  const recordsDisplay = (filteredRecords !=null && filteredRecords.length > 0) ? filteredRecords.map((record, index) => {
-      return (
-        <Box
-          fontSize={4}
-          paddingX={3}
-          paddingY={2}
-          marginRight={-2}
-          borderBottom="default"
-          display="flex"
-          alignItems="center"
-          overflowY="auto"
-          key={index}
-          border="thick"
-      ><a
+function DisplayAssignmentHeaders({records, onClick, toggleShow, showHide, assignmentDue}){
+  const recordsDisplay = filterRecords(records, assignmentDue);
+  return (
+    <Fragment>
+      <th>
+      <br></br>
+        <a
         style={{cursor: 'pointer', flex: 'auto', padding: 8}}
         onClick={() => {
-            onClick(record);
-        }}
-        >
-        {record.primaryCellValueAsString || 'Untitled Assignment'}
-        , 
-        {moment(record.getCellValue("Due")).format("MMM d")}
-      </a></Box>)
-    }) : null;
+          toggleShow(assignmentDue);
+        }}>
+          <Heading> {assignmentDue} ({recordsDisplay ? recordsDisplay.length : "0"})
+            {recordsDisplay ? (
+            <Icon name={showHide ? "chevronUp" : "chevronDown"} size={20} />) : (<></>)}
+          </Heading> 
+        </a>
+      </th>
+    </Fragment>
+  );
+}
 
-    return (
-      <Fragment>
-        <br></br>
-          <a
-          style={{cursor: 'pointer', flex: 'auto', padding: 8}}
-          onClick={() => {
-            toggleShow(assignmentDue);
-          }}>
-            <Heading> {assignmentDue} ({recordsDisplay ? recordsDisplay.length : "0"})
-              <Icon name={showHide ? "chevronUp" : "chevronDown"} size={20}/>
-            </Heading> 
-          </a>
-        {showHide && recordsDisplay != null ?
-        (
-          <Box position="relative" height="auto" overflow="auto">
-            {recordsDisplay}
-          </Box>
-        )
-        : (<></>) }
-      </Fragment>
-    );
+function DisplayAssignmentList({records, onClick, toggleShow, showHide, assignmentDue}){
+  const recordsDisplay = filterRecords(records, assignmentDue);
+  return <Fragment>
+    {showHide && recordsDisplay != null ?
+      (
+        
+        <td>
+        <Box position="relative" height="200px" overflow="auto">
+          {recordsDisplay}
+        </Box>
+        </td>
+      )
+      : (<></>) } 
+    </Fragment>
 }
 
 function filterRecords(records, category) {
   var now = moment();
+  var filteredRecords;
   switch(category){
     case assignmentDueTypes.OVERDUE:
-      return _.filter(records, function (record) {
+      filteredRecords = _.filter(records, function (record) {
         return moment(record.getCellValue("Due")).isBefore(now, 'day');
       });
+      break;
     case assignmentDueTypes.TODAY:
-      return _.filter(records, function(record){
+      filteredRecords = _.filter(records, function(record){
         return moment(record.getCellValue("Due")).isSame(moment(), 'day');
       });
+      break;
     case assignmentDueTypes.UPCOMING:
-      return _.filter(records, function(record){
+      filteredRecords = _.filter(records, function(record){
         return moment(record.getCellValue("Due")).isAfter(moment(), 'day');
       });
+      break;
     default:
       console.error("no type for " + category);
       return null;
   }
+
+  const recordsDisplay = (filteredRecords !=null && filteredRecords.length > 0) ? filteredRecords.map((record, index) => {
+    return (
+      <Box
+        fontSize={4}
+        paddingX={3}
+        paddingY={2}
+        marginRight={-2}
+        borderBottom="default"
+        display="flex"
+        alignItems="center"
+        overflowY="auto"
+        key={index}
+        border="thick"
+    ><a
+      style={{cursor: 'pointer', flex: 'auto', padding: 8}}
+      onClick={() => {
+          onClick(record);
+      }}
+      >
+      {record.primaryCellValueAsString || 'Untitled Assignment'}
+      , 
+      {moment(record.getCellValue("Due")).format("MMM d")}
+    </a></Box>)
+  }) : null;
+
+  return recordsDisplay;
+
 }
 
 export class ShowAssignments extends React.Component {
@@ -120,11 +139,22 @@ export class ShowAssignments extends React.Component {
     return (
       <>
         {this.state.showLists ? (
-          <Fragment>
-            <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
-            <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
-            <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
-          </Fragment>
+          <table style={{width:"100%"}}>
+            <tr>
+              <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
+              
+              <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
+              
+              <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
+            </tr>
+            <tr>
+              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
+              
+              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
+              
+              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
+            </tr>
+          </table>
         ) : (<></>)}
         {this.state.showIndividualAssignment ? (
           <ShowIndividualAssignment record={this.state.selectedAssignment} onClick={this.showHideAssignment}/>

@@ -23,6 +23,7 @@ const courseStateType = {
 }
 
 var topicIds = {};
+const DEBUG = true;
 
 export class ClassroomSync extends React.Component {
 
@@ -60,11 +61,18 @@ export class ClassroomSync extends React.Component {
 
     do_load() {
         var self = this;
-        this.gapi_script.then(function () {
+        if(DEBUG)
+        {
             self.setState({ 'status': 'done' });
-        }).catch(function () {
-            self.setState({ 'status': 'error' });
-        });
+        }
+        else{
+            this.gapi_script.then(function () {
+                self.setState({ 'status': 'done' });
+            }).catch(function () {
+                self.setState({ 'status': 'error' });
+            });
+        }
+        
     }
 
     /**
@@ -106,7 +114,9 @@ export class ClassroomSync extends React.Component {
             gapi.auth2.getAuthInstance().isSignedIn.listen(self.updateSigninStatus);
             // Handle the initial sign-in state.
             self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-            self.syncWithGoogleClassroom();
+            if(!DEBUG) {
+                self.syncWithGoogleClassroom();
+            }
         }, function (error) {
             alert(JSON.stringify(error, null, 2));
         });
