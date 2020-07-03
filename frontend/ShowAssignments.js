@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { Box, Heading, expandRecord, Icon } from "@airtable/blocks/ui";
+import { Box, Heading, Icon } from "@airtable/blocks/ui";
 import moment from 'moment';
 moment().format();
 
@@ -15,26 +15,26 @@ function ShowIndividualAssignment({record, onClick}){
     <Fragment>
       <br></br>
       <Box margin={2} padding={3} border="thick" borderRadius={5} overflow="auto">
-        <Heading>{record.getCellValue("Assignment")}</Heading> 
-            <a
-            style={{cursor: 'pointer', flex: 'auto', padding: 8}}
-            onClick={() => {
-                onClick(record);
-            }}
-            >
-                {record.getCellValue("Due")}
-            </a>
+        <a
+          style={{cursor: 'pointer', flex: 'auto', padding: 8, alignSelf: 'right'}}
+          onClick={() => {
+              onClick(record);
+          }}>
+            <Icon name="x" size={16} style={{float:"right", color:"gray"}} />
+        </a>
+        <br></br>
+        <Heading>{record.getCellValue("Assignment")}</Heading>
       </Box>
     </Fragment>
   );
 }
 
 function DisplayAssignmentHeaders({records, onClick, toggleShow, showHide, assignmentDue}){
-  const recordsDisplay = filterRecords(records, assignmentDue);
+  const recordsDisplay = filterRecords(records, onClick, assignmentDue);
   return (
     <Fragment>
-      <th>
-      <br></br>
+      <th style={{width:"33%"}}>
+        <br></br>
         <a
         style={{cursor: 'pointer', flex: 'auto', padding: 8}}
         onClick={() => {
@@ -50,23 +50,20 @@ function DisplayAssignmentHeaders({records, onClick, toggleShow, showHide, assig
   );
 }
 
-function DisplayAssignmentList({records, onClick, toggleShow, showHide, assignmentDue}){
-  const recordsDisplay = filterRecords(records, assignmentDue);
-  return <Fragment>
+function DisplayAssignmentList({records, onClick, showHide, assignmentDue}){
+  const recordsDisplay = filterRecords(records, onClick, assignmentDue);
+  return <td style={{width:"33%"}}>
     {showHide && recordsDisplay != null ?
       (
-        
-        <td>
-        <Box position="relative" height="200px" overflow="auto">
-          {recordsDisplay}
-        </Box>
-        </td>
+          <Box position="relative" height="200px" overflow="auto">
+            {recordsDisplay}
+          </Box>
       )
       : (<></>) } 
-    </Fragment>
+    </td>
 }
 
-function filterRecords(records, category) {
+function filterRecords(records, onClick, category) {
   var now = moment();
   var filteredRecords;
   switch(category){
@@ -93,7 +90,7 @@ function filterRecords(records, category) {
   const recordsDisplay = (filteredRecords !=null && filteredRecords.length > 0) ? filteredRecords.map((record, index) => {
     return (
       <Box
-        fontSize={4}
+        // fontSize={4}
         paddingX={3}
         paddingY={2}
         marginRight={-2}
@@ -103,6 +100,7 @@ function filterRecords(records, category) {
         overflowY="auto"
         key={index}
         border="thick"
+        width="inherit"
     ><a
       style={{cursor: 'pointer', flex: 'auto', padding: 8}}
       onClick={() => {
@@ -110,8 +108,10 @@ function filterRecords(records, category) {
       }}
       >
       {record.primaryCellValueAsString || 'Untitled Assignment'}
-      , 
-      {moment(record.getCellValue("Due")).format("MMM d")}
+      <br></br>
+      {(category != assignmentDueTypes.TODAY) ? 
+      (moment(record.getCellValue("Due")).format("MMM d")) 
+        : (<></>)}
     </a></Box>)
   }) : null;
 
@@ -140,6 +140,7 @@ export class ShowAssignments extends React.Component {
       <>
         {this.state.showLists ? (
           <table style={{width:"100%"}}>
+            <tbody>
             <tr>
               <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
               
@@ -148,12 +149,13 @@ export class ShowAssignments extends React.Component {
               <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
             </tr>
             <tr>
-              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
+              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
               
-              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
+              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
               
-              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
+              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
             </tr>
+            </tbody>
           </table>
         ) : (<></>)}
         {this.state.showIndividualAssignment ? (
