@@ -35,20 +35,7 @@ function AirClassroomBlock() {
     const assignments = useRecords(assignmentTable);
 
     return (
-        <Box
-        // center the button/loading spinner horizontally and vertically.
-        position="absolute"
-        top="0"
-        bottom="0"
-        left="0"
-        right="0"
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="center"
-        >
-            <ClassroomSync base={base} assignments={assignments}/>
-        </Box>
+        <ClassroomSync base={base} assignments={assignments}/>
     );
 }
 

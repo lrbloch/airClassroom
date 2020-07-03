@@ -1,6 +1,6 @@
-import { Loader, Button } from '@airtable/blocks/ui';
+import { Loader, Button, Box } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
-import { FieldType } from '@airtable/blocks/models';
+import { FieldType, Table } from '@airtable/blocks/models';
 import ShowAssignments from './ShowAssignments';
 import { GOOGLE_API_ENDPOINT, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE } from './index';
 
@@ -692,37 +692,53 @@ export class ClassroomSync extends React.Component {
 
         return (
             <>
-                {this.state.isUpdateInProgress ? (
-                    <Loader />
+                {this.state.isUpdateInProgress || !isLoggedIn? (
+                    <Box
+                    // center the button/loading spinner horizontally and vertically.
+                    position="absolute"
+                    top="0"
+                    bottom="0"
+                    left="0"
+                    right="0"
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="center"
+                    alignItems="center"
+                    >
+                        {this.state.isUpdateInProgress ? (<Loader />) : (
+                        <Button
+                            variant="primary"
+                            onClick={this.handleAuthClick}
+                            marginBottom={3}
+                            id="authorize_button"
+                            style={isLoggedIn ? { display: "none" } : { display: "block" }}
+                        >Connect and Sync with Google Classroom</Button>)}
+                    </Box>
                 ) : (
                         <Fragment>
-                            {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments}/>) : (<></>)}
-                            
                             {(this.state.lastSynced != null && this.state.isLoggedIn) ?
                                 (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
                             <br></br>
+                            <div>
                             <Button
-                                variant="primary"
-                                onClick={this.handleAuthClick}
+                                variant="secondary"
+                                onClick={this.handleSignoutClick}
                                 marginBottom={3}
-                                id="authorize_button"
-                                style={isLoggedIn ? { display: "none" } : { display: "block" }}
-                            >Connect and Sync with Google Classroom</Button>
+                                id="signout_button"
+                                style={isLoggedIn ? { display: "block", float: "right" } : { display: "none" }}
+                            >Sign Out</Button>
+                            
                             <Button
                                 variant="primary"
                                 onClick={this.syncWithGoogleClassroom}
                                 marginBottom={3}
-                                style={isLoggedIn ? { display: "block" } : { display: "none" }}
+                                style={isLoggedIn ? { display: "block", float: "right" } : { display: "none" }}
                                 id="sync_button"
                             >
-                                Update
-                        </Button>
-                            <Button
-                                onClick={this.handleSignoutClick}
-                                marginBottom={3}
-                                id="signout_button"
-                                style={isLoggedIn ? { display: "block" } : { display: "none" }}
-                            >Sign Out</Button>
+                                Sync With Google Classroom
+                            </Button>
+                            {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments}/>) : (<></>)}
+                            </div>
                         </Fragment>
                     )}
 
