@@ -26,16 +26,25 @@ function ShowIndividualAssignment({record, materials, onClick}){
               <Icon name="x" size={16} style={{float:"right", color:"gray"}} />
           </a>
           <br></br>
-          {points ? (<Text size="xlarge" style={{float:"right"}}>Points: {points}</Text>) : (<></>)}
-          <br></br>
-          <Link
-            href={record.getCellValue("Link")}
-            target="_blank"
-            style={{float:"right"}}
-            icon="hyperlink"
-          >
-            View in Google Classroom
-          </Link>
+          <Box
+            display="flex"
+            // alignItems="right"
+            justifyContent="right"
+            flexDirection="column"
+            width="100%"
+            flex="auto"
+            >
+            {points ? (<Text size="xlarge" style={{alignSelf:"flex-end"}}>Points: {points}</Text>) : (<></>)}
+            
+            <Link
+              href={record.getCellValue("Link")}
+              target="_blank"
+              style={{alignSelf:"flex-end"}}
+              icon="hyperlink"
+            >
+              View in Google Classroom
+            </Link>
+          </Box>
         </Box>
         <Heading>{record.getCellValue("Course")} | {record.getCellValue("Topic")}</Heading>
         <Heading>{record.getCellValue("Assignment")}{record.getCellValue("Submitted") === true ? " (Complete)" : ""}</Heading>
@@ -67,7 +76,7 @@ function getMaterialsForAssignment(assignmentId, materialsList){
         overflowY="auto"
         key={index}
         width="inherit"
-    >
+      >
       {/* TODO: Figure out how to make this toggle the materials */}
       {/* <a
       style={{cursor: 'pointer', flex: 'auto', padding: 8}}
@@ -145,7 +154,7 @@ function DisplayAssignmentHeaders({records, onClick, toggleShow, showHide, assig
         onClick={() => {
           toggleShow(assignmentDue);
         }}>
-          <Heading> {assignmentDue} ({recordsDisplay ? recordsDisplay.length : "0"})
+          <Heading as="h5"> {assignmentDue} ({recordsDisplay ? recordsDisplay.length : "0"})
             {recordsDisplay ? (
             <Icon name={showHide ? "chevronUp" : "chevronDown"} size={20} />) : (<></>)}
           </Heading> 
@@ -240,29 +249,42 @@ export class ShowAssignments extends React.Component {
     this.showHideAssignment = this.showHideAssignment.bind(this);
     this.toggleShow = this.toggleShow.bind(this);
   }
-
+  
   render() {
+    var countDueToday = _.filter(this.props.assignmentRecords.filteredRecords, function(record){
+      return moment(record.getCellValue("Due")).isSame(moment(), 'day');
+    }).length;
+
     return (
       <>
         {this.state.showLists ? (
-          <table style={{width:"100%"}}>
-            <tbody>
-            <tr>
-              <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
-              
-              <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
-              
-              <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
-            </tr>
-            <tr>
-              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
-              
-              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
-              
-              <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
-            </tr>
-            </tbody>
-          </table>
+          <Fragment>
+            <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            width="100%">
+              <Heading>Today is {moment().format('dddd, MMMM D YYYY')}. You have {countDueToday} assignments due today.</Heading>
+            </Box>
+            <table style={{width:"100%"}}>
+              <tbody>
+              <tr>
+                <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
+                
+                <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
+                
+                <DisplayAssignmentHeaders records={this.props.assignmentRecords} onClick={this.showHideAssignment} toggleShow={this.toggleShow} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
+              </tr>
+              <tr>
+                <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showOverdueList} assignmentDue={assignmentDueTypes.OVERDUE}/>
+                
+                <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showTodayList} assignmentDue={assignmentDueTypes.TODAY}/>
+                
+                <DisplayAssignmentList records={this.props.assignmentRecords} onClick={this.showHideAssignment} showHide={this.state.showUpcomingList} assignmentDue={assignmentDueTypes.UPCOMING}/>
+              </tr>
+              </tbody>
+            </table>
+          </Fragment>
         ) : (<></>)}
         {this.state.showIndividualAssignment ? (
           <ShowIndividualAssignment record={this.state.selectedAssignment} materials={this.props.materialRecords}  onClick={this.showHideAssignment}/>
