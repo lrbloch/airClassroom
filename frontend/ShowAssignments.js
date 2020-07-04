@@ -49,7 +49,7 @@ function ShowIndividualAssignment({ record, materials, onClick }) {
         <Text>{record.getCellValue("Description")}</Text>
         <br></br>
         <br></br>
-        {materials ? (<Heading>Materials</Heading>) : (<></>)}
+        {materials ? (<Heading borderBottom="thick">Materials</Heading>) : (<></>)}
         <>{materials}</>
       </Box>
   );
@@ -81,7 +81,7 @@ function getMaterialsForAssignment(assignmentId, materialsList) {
         showMaterial = !showMaterial;
         console.debug("showMaterial: " + showMaterial);
       }}> */}
-        <Text size="large">
+        <Text style={{fontWeight:"bold"}}>
           {record.primaryCellValueAsString || 'Untitled'}
           <Link
               href={record.getCellValue("Link")}
