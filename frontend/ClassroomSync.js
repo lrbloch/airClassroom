@@ -1,4 +1,4 @@
-import { Loader, Button, Box } from '@airtable/blocks/ui';
+import { Loader, Button, Box, ViewPicker } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
 import { FieldType, Table } from '@airtable/blocks/models';
 import ShowAssignments from './ShowAssignments';
@@ -748,7 +748,7 @@ export class ClassroomSync extends React.Component {
         }
 
         return (
-            <div style={{marginRight: "2%"}}>
+            <Fragment>
                 {this.state.isUpdateInProgress || !isLoggedIn? (
                     <Box
                     // center the button/loading spinner horizontally and vertically.
@@ -773,36 +773,55 @@ export class ClassroomSync extends React.Component {
                     </Box>
                 ) : (
                     <Fragment>
-                        <Box>
-                            {(this.state.lastSynced != null && this.state.isLoggedIn) ?
-                                (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
-                            <br></br>
+                        <Box 
+                        display="flex"
+                        margin="5%">
+                            <ViewPicker
+                                table={this.props.assignmentTable}
+                                view={this.props.assignmentView}
+                                onChange={(newView) => {
+                                    this.props.setAssignmentView(newView);
+                                }}
+                                width="33%"
+                            />
+                            <Box 
+                            display="flex"
+                            alignContent="flex-end"
+                            justifyContent="flex-end"
+                            width="100%"
+                            >
                             <Button
                                 variant="secondary"
                                 onClick={this.handleSignoutClick}
                                 marginBottom={3}
                                 id="signout_button"
-                                style={isLoggedIn ? { display: "block", float: "right" } : { display: "none" }}
+                                style={isLoggedIn ? { display: "flex"} : { display: "none" }}
                             >Sign Out</Button>
                             
                             <Button
                                 variant="primary"
                                 onClick={this.syncWithGoogleClassroom}
                                 marginBottom={3}
-                                style={isLoggedIn ? { display: "block", float: "right" } : { display: "none" }}
+                                style={isLoggedIn ? { display: "flex"} : { display: "none" }}
                                 id="sync_button"
                             >
                                 Sync With Google Classroom
                             </Button>
+                            </Box>
                         </Box>
+                        <div style={{marginRight: "2%"}}>
                         <br></br>
                         <Box>
                             {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials}/>) : (<></>)}
                         </Box>
+
+                        {(this.state.lastSynced != null && this.state.isLoggedIn) ?
+                            (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
+                        <br></br>
+                        </div>
                     </Fragment>
                 )}
-
-            </div>
+            </Fragment>
         );
     }
 }

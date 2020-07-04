@@ -1,8 +1,9 @@
 
-import { initializeBlock, useBase, useRecords, Box } from '@airtable/blocks/ui';
-import React, { useState } from 'react';
+import { initializeBlock, useBase, useRecords, ViewPicker, Box } from '@airtable/blocks/ui';
+import React, { useState, Fragment } from 'react';
 import { ClassroomSync } from './ClassroomSync';
 import { tableType } from './ClassroomSync';
+import { assignmentDueTypes } from './ShowAssignments';
 const credentials = require('../../../../../credentials.json')
 
 // These values match the base for this example: https://airtable.com/shrIho8SB7RhrlUQL
@@ -37,14 +38,19 @@ function AirClassroomBlock() {
             {field: "Due", direction: 'asc'}
         ]
     }
-    const assignments = useRecords(assignmentTable, opts);
+    const [assignmentView, setAssignmentView] = useState(assignmentTable.views[0]);
+    const assignments = useRecords(assignmentView, opts);
 
     const materialsTable = base.getTableByNameIfExists(tableType.MATERIAL);
     const materials = useRecords(materialsTable);
 
     return (
-        <ClassroomSync base={base} assignments={assignments} materials={materials}/>
+        <Box>
+            <ClassroomSync assignmentTable={assignmentTable} assignmentView={assignmentView} setAssignmentView={setAssignmentView} base={base} assignments={assignments} materials={materials}/>
+        </Box>
+        
     );
+
 }
 
 initializeBlock(() => <AirClassroomBlock/>);
