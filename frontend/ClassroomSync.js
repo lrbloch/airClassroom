@@ -22,8 +22,20 @@ const courseStateType = {
     SUSPENDED: "Suspended"
 }
 
+/** @enum {bool} */
+const submittedStatusType = {
+    SUBMISSION_STATE_UNSPECIFIED: false,
+    NEW: false,
+    CREATED: false,
+    TURNED_IN: true,
+    RETURNED: true,
+    RECLAIMED_BY_STUDENT: false
+}
+
+
+
 var topicIds = {};
-const DEBUG = true;
+const DEBUG = false;
 
 export class ClassroomSync extends React.Component {
 
@@ -126,7 +138,7 @@ export class ClassroomSync extends React.Component {
      *  appropriately. After a sign-in, the API is called.
      */
     updateSigninStatus(isSignedIn) {
-        console.log("isSignedIn: " + isSignedIn);
+        //console.log("isSignedIn: " + isSignedIn);
         this.setState({ 'isLoggedIn': isSignedIn });
     }
 
@@ -149,22 +161,22 @@ export class ClassroomSync extends React.Component {
         if (table != null) {
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
             if (newRecords?.length > 0) {
-                console.log("new courses");
+                //console.log("new courses");
                 let i = 0;
                 while (i < newRecords?.length) {
-                    console.log("i = " + i);
+                    //console.log("i = " + i);
                     const createBatch = newRecords.slice(i, i + MAX_RECORDS_PER_UPDATE);
                     // await is used to wait for the update to finish saving to Airtable servers before
                     // continuing. This means we'll stay under the rate limit for writes.
                     const recordIds = await table.createRecordsAsync(createBatch);
-                    console.log(`new records created with ID: ${recordIds}`);
+                    //console.log(`new records created with ID: ${recordIds}`);
                     i += MAX_RECORDS_PER_UPDATE;
                 }
             }
 
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
             if (updateRecords?.length > 0) {
-                console.log("new courses");
+                //console.log("new courses");
                 let j = 0;
                 while (j < updateRecords?.length) {
                     const updateBatch = updateRecords.slice(j, j + MAX_RECORDS_PER_UPDATE);
@@ -259,28 +271,28 @@ export class ClassroomSync extends React.Component {
 
                 var existingRecord = await query.records.find(record => record.getCellValue("Material") === materialRecord.fields.Material);
                 if (typeof (existingRecord) === typeof (undefined)) {
-                    console.log("material record doesn't exist yet");
+                    //console.log("material record doesn't exist yet");
                     newMaterialList.push(materialRecord);
                 }
                 else {
-                    console.log("material record already exists");
+                    //console.log("material record already exists");
 
                     if (self.recordsAreNotEqual(tableType.MATERIAL, existingRecord, materialRecord)) {
-                        console.log("at least one field is different");
+                        //console.log("at least one field is different");
                         materialRecord.id = existingRecord.id;
                         updateMaterialList.push(materialRecord);
                     }
                     else {
-                        console.log("materials are equal");
+                        //console.log("materials are equal");
                     }
                 }
             });
             await query.unloadData();
         }
         else {
-            console.log("no materials found");
+            //console.log("no materials found");
         }
-        console.log("newMaterials created: " + JSON.stringify(newMaterialList));
+        //console.log("newMaterials created: " + JSON.stringify(newMaterialList));
         await self.syncTableRecords(newMaterialList, updateMaterialList, materialTable);
     }
 
@@ -290,7 +302,7 @@ export class ClassroomSync extends React.Component {
             courseId: id
         }).then(async function (response) {
             var topics = response.result.topic;
-            console.log("syncing topics: " + JSON.stringify(topics));
+            //console.log("syncing topics: " + JSON.stringify(topics));
             await self.createTableIfNotExists(tableType.TOPIC).then(async function (topicTable) {
                 const newTopicList = [];
                 const updateTopicList = [];
@@ -306,19 +318,19 @@ export class ClassroomSync extends React.Component {
                             }
                             var existingRecord = await query.records.find(record => record.getCellValue("TopicId") === topicRecord.fields.TopicId);
                             if (typeof (existingRecord) === typeof (undefined)) {
-                                console.log("topic record doesn't exist yet");
+                                //console.log("topic record doesn't exist yet");
                                 newTopicList.push(topicRecord);
                             }
                             else {
-                                console.log("topic record already exists");
+                                //console.log("topic record already exists");
 
                                 if (self.recordsAreNotEqual(tableType.TOPIC, existingRecord, topicRecord)) {
-                                    console.log("at least one field is different");
+                                    //console.log("at least one field is different");
                                     topicRecord.id = existingRecord.id;
                                     updateTopicList.push(topicRecord);
                                 }
                                 else {
-                                    console.log("topics are equal");
+                                    //console.log("topics are equal");
                                 }
                             }
                             topicIds[topicRecord.fields.TopicId] = topicRecord.fields.Topic;
@@ -326,9 +338,9 @@ export class ClassroomSync extends React.Component {
                         await query.unloadData();
                     }
                     else {
-                        console.log("no topics found");
+                        //console.log("no topics found");
                     }
-                    console.log("newTopics created: " + JSON.stringify(newTopicList));
+                    //console.log("newTopics created: " + JSON.stringify(newTopicList));
                     await self.syncTableRecords(newTopicList, updateTopicList, topicTable);
                 });
             });
@@ -337,7 +349,7 @@ export class ClassroomSync extends React.Component {
 
     //TODO: Add update in case fields of old table don't match these fields
     async createTableIfNotExists(tableName) {
-        console.log("Creating Table, tableName: " + tableName);
+        //console.log("Creating Table, tableName: " + tableName);
         let table = this.props.base.getTableByNameIfExists(tableName);
         if (table == null) {
             var fields = [];
@@ -393,6 +405,10 @@ export class ClassroomSync extends React.Component {
                             { name: 'Link', type: FieldType.URL },
                             { name: 'Points', type: FieldType.NUMBER, options: { precision: 0 } },
                             { name: 'Updated', type: FieldType.SINGLE_LINE_TEXT },
+                            {name: 'Submitted', type: FieldType.CHECKBOX, options: {
+                                icon: 'check',
+                                color: 'greenBright'
+                            }},
                             { name: 'Due', type: FieldType.DATE_TIME, options: 
                                 {
                                     dateFormat: {
@@ -476,7 +492,7 @@ export class ClassroomSync extends React.Component {
                     console.error(`no tableType matches ${tableName}`);
                     return;
             }
-            console.log(`creating ${tableName} table`);
+            //console.log(`creating ${tableName} table`);
             if (this.props.base.unstable_hasPermissionToCreateTable(tableName, fields)) {
                 table = await this.props.base.unstable_createTableAsync(tableName, fields);
                 return table;
@@ -525,7 +541,7 @@ export class ClassroomSync extends React.Component {
 
     async getCourses() {
         var self = this;
-        console.log("calling createTableIfNotExists from getCourses");
+        //console.log("calling createTableIfNotExists from getCourses");
         await self.createTableIfNotExists(tableType.COURSE).then(async function (courseTable) {
             const newCourseList = [];
             const updateCourseList = [];
@@ -535,7 +551,7 @@ export class ClassroomSync extends React.Component {
             if (courses?.length > 0) {
                 await self.asyncForEach(courses, async (course) => {
                     var courseId = course.id;
-                    console.log("course ID: " + courseId);
+                    //console.log("course ID: " + courseId);
                     await self.syncTopics(courseId);
                     var courseRecord = {
                         fields: {
@@ -551,20 +567,20 @@ export class ClassroomSync extends React.Component {
                     };
                     var existingRecord = await query.records.find(record => record.getCellValue("CourseId") === courseRecord.fields.CourseId);
                     if (typeof (existingRecord) === typeof (undefined)) {
-                        console.log("record doesn't exist yet");
+                        //console.log("record doesn't exist yet");
                         newCourseList.push(courseRecord);
                     }
                     else {
-                        console.log("record already exists");
+                        //console.log("record already exists");
 
                         if (self.recordsAreNotEqual(tableType.COURSE, existingRecord, courseRecord)) {
-                            console.log("at least one field is different");
+                            //console.log("at least one field is different");
                             courseRecord.id = existingRecord.id;
-                            console.log("courseRecord: " + JSON.stringify(courseRecord));
+                            //console.log("courseRecord: " + JSON.stringify(courseRecord));
                             updateCourseList.push(courseRecord);
                         }
                         else {
-                            console.log("courses are equal");
+                            //console.log("courses are equal");
                         }
                     }
                     await self.getAssignments(courseId).then(async function () {
@@ -574,9 +590,9 @@ export class ClassroomSync extends React.Component {
                 await query.unloadData();
             }
             else {
-                console.log("no courses found");
+                //console.log("no courses found");
             }
-            console.log("newCourseList created: " + JSON.stringify(newCourseList));
+            //console.log("newCourseList created: " + JSON.stringify(newCourseList));
             await self.syncTableRecords(newCourseList, updateCourseList, courseTable);
         });
     }
@@ -611,6 +627,15 @@ export class ClassroomSync extends React.Component {
                 {
                     var dueDateTime = new Date(Date.UTC(assignment.dueDate.year, assignment.dueDate.month-1, assignment.dueDate.day, assignment.dueTime.hours, assignment.dueTime.minutes, 0, 0));
                 }
+                var studentSubmissions = await gapi.client.classroom.courses.courseWork.studentSubmissions.list({
+                    courseId: id,
+                    courseWorkId: assignment.id
+                });
+                var submissionEntries = studentSubmissions.result ? studentSubmissions.result.studentSubmissions : null;
+                var submittedStatus = submissionEntries ? submittedStatusType[submissionEntries[0].state] : false;
+                
+                console.log("student submissions: " + JSON.stringify(submissionEntries));
+                console.log("Submitted: " + submittedStatus);
                 var assignmentRecord = {
                     fields: {
                         'AssignmentId': parseInt(assignment.id),
@@ -621,23 +646,24 @@ export class ClassroomSync extends React.Component {
                         'Link': assignment.alternateLink,
                         'Points': assignment.maxPoints,
                         'Updated': assignment.updateTime,
+                        'Submitted': submittedStatus,
                         'Due': assignment.dueDate ? dueDateTime.toISOString() : null
                     }
                 };
                 var existingRecord = query.records.find(record => record.getCellValue('AssignmentId') === assignmentRecord.fields.AssignmentId);
                 if (typeof (existingRecord) === typeof (undefined)) {
-                    console.log("assignment record doesn't exist yet");
+                    //console.log("assignment record doesn't exist yet");
                     newAssignmentList.push(assignmentRecord);
                 }
                 else {
-                    console.log("assignment record already exists");
+                    //console.log("assignment record already exists");
                     if (self.recordsAreNotEqual(tableType.ASSIGNMENT, existingRecord, assignmentRecord)) {
-                        console.log("at least one field is different");
+                        //console.log("at least one field is different");
                         assignmentRecord.id = existingRecord.id;
                         updateAssignmentList.push(assignmentRecord);
                     }
                     else {
-                        console.log("assignments are equal");
+                        //console.log("assignments are equal");
                     }
                 }
             })
@@ -650,8 +676,8 @@ export class ClassroomSync extends React.Component {
     }
 
     getTopicNameFromId(topicId) {
-        console.log("topicIds: " + JSON.stringify(topicIds));
-        console.log("topic from id: " + topicIds[topicId]);
+        //console.log("topicIds: " + JSON.stringify(topicIds));
+        //console.log("topic from id: " + topicIds[topicId]);
         return topicIds[topicId];
     }
 
@@ -752,7 +778,7 @@ String.prototype.toAmPmString = function () {
     var hoursRegex = /^([0-9]+):/;
     var secondsRegex = /^([0-9]+:[0-9]+)(:[0-9]+)/;
     var hours = parseInt(this.match(hoursRegex)[0]);
-    console.log("hours: " + hours);
+    //console.log("hours: " + hours);
     if (hours > 12 && hours < 24) {
         hours = hours - 12;
         ampm = "pm";
