@@ -40,7 +40,7 @@ function ShowIndividualAssignment({ record, materials, onClick }) {
               style={{ alignSelf: "flex-end" }}
               icon="hyperlink"
             >
-              View in Google Classroom
+              Complete Assignment in Google Classroom
             </Link>
           </Box>
         </Box>
