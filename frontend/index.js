@@ -32,7 +32,12 @@ function AirClassroomBlock() {
     const table = base.getTableByName(TABLE_NAME);
     const records = useRecords(table);
     const assignmentTable = base.getTableByNameIfExists(tableType.ASSIGNMENT);
-    const assignments = useRecords(assignmentTable);
+    const opts = {
+        sorts: [
+            {field: "Due", direction: 'asc'}
+        ]
+    }
+    const assignments = useRecords(assignmentTable, opts);
 
     return (
         <ClassroomSync base={base} assignments={assignments}/>

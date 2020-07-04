@@ -93,7 +93,7 @@ function filterRecords(records, onClick, category) {
         // fontSize={4}
         paddingX={3}
         paddingY={2}
-        marginRight={-2}
+        margin={1}
         borderBottom="default"
         display="flex"
         alignItems="center"
@@ -110,7 +110,7 @@ function filterRecords(records, onClick, category) {
       {record.primaryCellValueAsString || 'Untitled Assignment'}
       <br></br>
       {(category != assignmentDueTypes.TODAY) ? 
-      (moment(record.getCellValue("Due")).format("MMM d")) 
+      (moment(record.getCellValue("Due")).format("MMM D")) 
         : (<></>)}
     </a></Box>)
   }) : null;
