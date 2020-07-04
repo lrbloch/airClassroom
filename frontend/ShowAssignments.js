@@ -147,7 +147,6 @@ function getYoutubePreviewUrl(url) {
 }
 
 function DisplayAssignmentHeaders({ numAssignments, onClick, toggleShow, showHide, assignmentDue }) {
-  //const recordsToDisplay = DisplayGroupedAssignments(records, onClick, assignmentDue);
   return (
     <Fragment>
       <th style={{ width: "33%" }}>
@@ -210,11 +209,6 @@ function DisplayGroupedAssignments(records, onClick, category){
   }) : null;
 
   return recordsToDisplay;
-}
-
-function filterAndDisplay(records, onClick, category) {
-  var filteredRecords = filterRecords(records, category);
-  return DisplayGroupedAssignments(filteredRecords, onClick, category);
 }
 
 function filterRecords(records, category) {
