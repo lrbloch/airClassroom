@@ -782,7 +782,7 @@ export class ClassroomSync extends React.Component {
                                 marginBottom={3}
                                 id="authorize_button"
                                 style={isLoggedIn ? { display: "none" } : { display: "block" }}
-                            >Connect and Sync with Google Classroom</Button>)}
+                            >Connect With Google Classroom</Button>)}
                     </Box>
                 ) : (
                         <Fragment>
@@ -792,7 +792,7 @@ export class ClassroomSync extends React.Component {
                                     alignContent="flex-end"
                                     justifyContent="flex-end"
                                 >
-                                    <div>Last Synced: {this.state.lastSynced} </div>
+                                    <div>Last Sync from Google Classroom: {this.state.lastSynced} </div>
                                 </Box>
                                 : (<></>)}
                             <Box
