@@ -252,6 +252,9 @@ export class ShowAssignments extends React.Component {
     };
     this.showHideAssignment = this.showHideAssignment.bind(this);
     this.toggleShow = this.toggleShow.bind(this);
+    this.prevAssignment = this.prevAssignment.bind(this);
+    this.nextAssignment = this.nextAssignment.bind(this);
+    this.prevOrNextAssignment = this.prevOrNextAssignment.bind(this);
   }
 
   render() {
@@ -303,6 +306,7 @@ export class ShowAssignments extends React.Component {
               onClick={this.prevAssignment}
               icon="chevronLeft"
               size="large"
+              aria-label="previous"
               />
               <ShowIndividualAssignment record={this.state.selectedAssignment} materials={this.props.materialRecords} onClick={this.showHideAssignment} />
               <Button
@@ -310,9 +314,9 @@ export class ShowAssignments extends React.Component {
               onClick={this.nextAssignment}
               icon="chevronRight"
               size="large"
+              aria-label="next"
               />
             </Box>
-            <Icon></Icon>
           </Fragment>
         ) : (<></>)}
       </>
@@ -320,7 +324,61 @@ export class ShowAssignments extends React.Component {
   }
 
   prevAssignment(){
-    //var recordIndex = 
+    this.prevOrNextAssignment(false);
+  }
+  nextAssignment(){
+    this.prevOrNextAssignment(true);
+  }
+
+  prevOrNextAssignment(forward){
+    var assignsOverDue = filterRecords(this.props.assignmentRecords, assignmentDueTypes.OVERDUE);
+    var assignsDueToday = filterRecords(this.props.assignmentRecords, assignmentDueTypes.TODAY);
+    var assignsUpcoming = filterRecords(this.props.assignmentRecords, assignmentDueTypes.UPCOMING);
+    var recordIndex = assignsOverDue.indexOf(this.state.selectedAssignment);
+    if (recordIndex >= 0)
+    {
+      console.log("found in assignsOverDue");
+      if(forward)
+      {
+        var nextIndex = (recordIndex + 1) < assignsOverDue.length ? (recordIndex + 1) : 0;
+      }
+      else{
+        var nextIndex = (recordIndex - 1) >= 0 ? (recordIndex - 1) : assignsOverDue.length - 1;
+      }
+      this.setState({'selectedAssignment': assignsOverDue[nextIndex]});
+    }
+    else recordIndex = assignsDueToday.indexOf(this.state.selectedAssignment);
+    if(recordIndex >= 0)
+    {
+      console.log("found in assignsDueToday");
+      if(forward)
+      {
+        var nextIndex = (recordIndex + 1) < assignsDueToday.length ? (recordIndex + 1) : 0;
+      }
+      else{
+        var nextIndex = (recordIndex - 1) >= 0 ? (recordIndex - 1) : assignsDueToday.length - 1;
+      }
+      this.setState({'selectedAssignment': assignsDueToday[nextIndex]});
+    }
+    else{
+      recordIndex = assignsUpcoming.indexOf(this.state.selectedAssignment);
+      if (recordIndex < 0) {
+        console.log("didn't find");
+        this.showHideAssignment(this.state.selectedAssignment)
+        return;
+      }
+      else{
+        console.log("found in assignsUpcoming");
+        if(forward)
+        {
+          var nextIndex = (recordIndex + 1) < assignsUpcoming.length ? (recordIndex + 1) : 0;
+        }
+        else{
+          var nextIndex = (recordIndex - 1) >= 0 ? (recordIndex - 1) : assignsUpcoming.length - 1;
+        }
+        this.setState({'selectedAssignment': assignsUpcoming[nextIndex]});
+      }
+    } 
   }
 
   showHideAssignment(record) {
