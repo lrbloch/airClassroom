@@ -38,7 +38,7 @@ function AirClassroomBlock() {
             {field: "Due", direction: 'asc'}
         ]
     }
-    const [assignmentView, setAssignmentView] = useState(assignmentTable.views[0]);
+    const [assignmentView, setAssignmentView] = useState(assignmentTable?.views[0]);
     const assignments = useRecords(assignmentView, opts);
 
     const materialsTable = base.getTableByNameIfExists(tableType.MATERIAL);

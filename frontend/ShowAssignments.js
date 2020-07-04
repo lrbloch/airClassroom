@@ -150,11 +150,11 @@ function DisplayAssignmentHeaders({records, onClick, toggleShow, showHide, assig
       <th style={{width:"33%"}}>
         <br></br>
         <a
-        style={{cursor: 'pointer', flex: 'auto', padding: 8}}
+        style={{cursor: (recordsDisplay ? 'pointer': ''), flex: 'auto', padding: 8}}
         onClick={() => {
-          toggleShow(assignmentDue);
+          {recordsDisplay ? toggleShow(assignmentDue): ''};
         }}>
-          <Heading as="h5"> {assignmentDue} ({recordsDisplay ? recordsDisplay.length : "0"})
+          <Heading as="h5" textColor={showHide ? "" : "light"}> {assignmentDue} ({recordsDisplay ? recordsDisplay.length : "0"})
             {recordsDisplay ? (
             <Icon name={showHide ? "chevronUp" : "chevronDown"} size={20} />) : (<></>)}
           </Heading> 
@@ -264,7 +264,8 @@ export class ShowAssignments extends React.Component {
             alignItems="center"
             justifyContent="center"
             width="100%">
-              <Heading>Today is {moment().format('dddd, MMMM D YYYY')}. You have {countDueToday} assignments due today.</Heading>
+              <Heading style={{textAlign:"center"}}>Today is {moment().format('dddd, MMMM D YYYY')}.<br/>
+              You have {countDueToday} assignments due today.</Heading>
             </Box>
             <table style={{width:"100%"}}>
               <tbody>

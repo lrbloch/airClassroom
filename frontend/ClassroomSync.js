@@ -1,8 +1,9 @@
-import { Loader, Button, Box, ViewPicker } from '@airtable/blocks/ui';
+import { Loader, Button, Box, ViewPicker, Tooltip } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
 import { FieldType, Table } from '@airtable/blocks/models';
 import ShowAssignments from './ShowAssignments';
 import { GOOGLE_API_ENDPOINT, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE } from './index';
+import {globalConfig} from '@airtable/blocks';
 
 /** @enum {string} */
 export const tableType = {
@@ -36,7 +37,7 @@ const submittedStatusType = {
 
 var topicIds = {};
 var courseIds = {};
-const DEBUG = true;
+const DEBUG = false;
 
 export class ClassroomSync extends React.Component {
     constructor(props) {
@@ -45,7 +46,7 @@ export class ClassroomSync extends React.Component {
             status: 'start',
             isLoggedIn: props.isLoggedIn,
             isUpdateInProgress: false,
-            lastSynced: null
+            lastSynced: globalConfig.get(['lastSynced'])
         };
 
         // This binding is necessary to make `this` work in the callback
@@ -150,8 +151,12 @@ export class ClassroomSync extends React.Component {
             self.setState({ 'isUpdateInProgress': true });
             self.getCourses().then(function () {
                 var date = new Date(Date.now());
+                var lastSyncedString = date.toTimeString().replace(/([0-9]+:[0-9]+:[0-9]+).*/, '$1').toAmPmString();
                 self.setState({ 'isUpdateInProgress': false });
-                self.setState({ 'lastSynced': date.toTimeString().replace(/([0-9]+:[0-9]+:[0-9]+).*/, '$1').toAmPmString() });
+                self.setState({ 'lastSynced':  lastSyncedString});
+                if (globalConfig.hasPermissionToSet('lastSynced', lastSyncedString)) {
+                    globalConfig.setAsync('lastSynced', lastSyncedString);
+                }
             });
         }
     }
@@ -212,6 +217,7 @@ export class ClassroomSync extends React.Component {
                         materialRecord = {
                             fields: {
                                 'Material': material.link.title ? material.link.title : "Untitled Link",
+                                //todo: better way to ID
                                 'Link': material.link.url,
                                 'MaterialType': { name: materialType },
                                 'AssignmentId': parseInt(assignmentId)
@@ -294,16 +300,17 @@ export class ClassroomSync extends React.Component {
                         return;
                 }
 
-                var existingRecord = await query.records.find(record => record.getCellValue("Material") === materialRecord.fields.Material);
+                var existingRecord = await query.records.find(
+                    record => record.getCellValue("Material") === materialRecord.fields.Material && record.getCellValue("AssignmentId") === materialRecord.fields.AssignmentId);
                 if (typeof (existingRecord) === typeof (undefined)) {
-                    //console.log("material record doesn't exist yet");
+                    console.log("material record doesn't exist yet: " + materialRecord.fields.Material);
                     newMaterialList.push(materialRecord);
                 }
                 else {
                     //console.log("material record already exists");
 
                     if (self.recordsAreNotEqual(tableType.MATERIAL, existingRecord, materialRecord)) {
-                        //console.log("at least one field is different");
+                        console.log("at least one field is different: " + JSON.stringify(materialRecord));
                         materialRecord.id = existingRecord.id;
                         updateMaterialList.push(materialRecord);
                     }
@@ -554,7 +561,8 @@ export class ClassroomSync extends React.Component {
                 return ((existingRecord.getCellValue("Material") != compareRecord.fields.Material)
                     || (existingRecord.getCellValue("Link") != compareRecord.fields.Link)
                     || (existingRecord.getCellValue("Image")?.url != compareRecord.fields.Image?.url)
-                    || (existingRecord.getCellValue("MaterialType") != compareRecord.fields.MaterialType));
+                    || (existingRecord.getCellValue("AssignmentId") != compareRecord.fields.AssignmentId)
+                    || (existingRecord.getCellValue("MaterialType").name != compareRecord.fields.MaterialType.name));
             case tableType.TOPIC:
                 return ((existingRecord.getCellValue("Topic") != compareRecord.fields.Topic)
                     || (existingRecord.getCellValue("TopicId") != compareRecord.fields.TopicId)
@@ -574,6 +582,7 @@ export class ClassroomSync extends React.Component {
             const updateCourseList = [];
             var response = await gapi.client.classroom.courses.list();
             var courses = response.result.courses;
+            console.log("Courses: " + JSON.stringify(courses));
             const query = await courseTable.selectRecordsAsync();
             if (courses?.length > 0) {
                 await self.asyncForEach(courses, async (course) => {
@@ -610,10 +619,10 @@ export class ClassroomSync extends React.Component {
                             //console.log("courses are equal");
                         }
                     }
+                    courseIds[courseRecord.fields.CourseId] = courseRecord.fields.Course;
                     await self.getAssignments(courseId).then(async function () {
                         await self.delayAsync(50);
                     });
-                    courseIds[courseRecord.fields.CourseId] = courseRecord.fields.Course;
                 });
                 await query.unloadData();
             }
@@ -709,6 +718,8 @@ export class ClassroomSync extends React.Component {
     }
 
     getCourseNameFromId(courseId) {
+        console.log("get coursename from id: " + courseId);
+        console.log("courseIds: " + JSON.stringify(courseIds));
         return courseIds[courseId];
     }
 
@@ -773,9 +784,18 @@ export class ClassroomSync extends React.Component {
                     </Box>
                 ) : (
                     <Fragment>
+                        {(this.state.lastSynced != null) ?
+                        <Box display="flex"
+                            padding="5% 5% 0 5%"
+                            alignContent="flex-end"
+                            justifyContent="flex-end"
+                        >
+                            <div>Last Synced: {this.state.lastSynced} </div>
+                        </Box>
+                        : (<></>)}
                         <Box 
                         display="flex"
-                        margin="5%">
+                        margin="1% 5% 0 5%">
                             <ViewPicker
                                 table={this.props.assignmentTable}
                                 view={this.props.assignmentView}
@@ -790,33 +810,39 @@ export class ClassroomSync extends React.Component {
                             justifyContent="flex-end"
                             width="100%"
                             >
-                            <Button
-                                variant="secondary"
-                                onClick={this.handleSignoutClick}
-                                marginBottom={3}
-                                id="signout_button"
+                            <Tooltip
+                                content="Get Assignments from Google Classroom"
+                                placementX={Tooltip.placements.RIGHT}
+                                placementY={Tooltip.placements.BOTTOM}
                                 style={isLoggedIn ? { display: "flex"} : { display: "none" }}
-                            >Sign Out</Button>
-                            
-                            <Button
-                                variant="primary"
-                                onClick={this.syncWithGoogleClassroom}
-                                marginBottom={3}
-                                style={isLoggedIn ? { display: "flex"} : { display: "none" }}
-                                id="sync_button"
                             >
-                                Sync With Google Classroom
-                            </Button>
+                                <Button 
+                                    variant="secondary" 
+                                    icon="redo" 
+                                    aria-label="Get Assignments from Google Classroom" 
+                                    onClick={this.syncWithGoogleClassroom} />
+                            </Tooltip>
+                            <Tooltip
+                                content="Sign Out of Google Classroom"
+                                placementX={Tooltip.placements.RIGHT}
+                                placementY={Tooltip.placements.BOTTOM}
+                                style={isLoggedIn ? { display: "flex"} : { display: "none" }}
+                            >
+                                <Button
+                                    variant="secondary"
+                                    onClick={this.handleSignoutClick}
+                                    marginBottom={3}
+                                    id="signout_button"
+                                >Sign Out</Button>
+                            </Tooltip>
                             </Box>
                         </Box>
+                       
                         <div style={{marginRight: "2%"}}>
                         <br></br>
                         <Box>
                             {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials}/>) : (<></>)}
                         </Box>
-
-                        {(this.state.lastSynced != null && this.state.isLoggedIn) ?
-                            (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
                         <br></br>
                         </div>
                     </Fragment>
