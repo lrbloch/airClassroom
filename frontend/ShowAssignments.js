@@ -79,7 +79,7 @@ function getMaterialsForAssignment(assignmentId, materialsList) {
       style={{cursor: 'pointer', flex: 'auto', padding: 8}}
       onClick={() => {
         showMaterial = !showMaterial;
-        console.log("showMaterial: " + showMaterial);
+        console.debug("showMaterial: " + showMaterial);
       }}> */}
         <Text size="large">
           {record.primaryCellValueAsString || 'Untitled'}
@@ -337,7 +337,7 @@ export class ShowAssignments extends React.Component {
     var recordIndex = assignsOverDue.indexOf(this.state.selectedAssignment);
     if (recordIndex >= 0)
     {
-      console.log("found in assignsOverDue");
+      console.debug("found in assignsOverDue");
       if(forward)
       {
         var nextIndex = (recordIndex + 1) < assignsOverDue.length ? (recordIndex + 1) : 0;
@@ -350,7 +350,7 @@ export class ShowAssignments extends React.Component {
     else recordIndex = assignsDueToday.indexOf(this.state.selectedAssignment);
     if(recordIndex >= 0)
     {
-      console.log("found in assignsDueToday");
+      console.debug("found in assignsDueToday");
       if(forward)
       {
         var nextIndex = (recordIndex + 1) < assignsDueToday.length ? (recordIndex + 1) : 0;
@@ -363,12 +363,12 @@ export class ShowAssignments extends React.Component {
     else{
       recordIndex = assignsUpcoming.indexOf(this.state.selectedAssignment);
       if (recordIndex < 0) {
-        console.log("didn't find");
+        console.debug("didn't find");
         this.showHideAssignment(this.state.selectedAssignment)
         return;
       }
       else{
-        console.log("found in assignsUpcoming");
+        console.debug("found in assignsUpcoming");
         if(forward)
         {
           var nextIndex = (recordIndex + 1) < assignsUpcoming.length ? (recordIndex + 1) : 0;
