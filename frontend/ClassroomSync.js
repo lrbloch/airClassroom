@@ -762,9 +762,9 @@ export class ClassroomSync extends React.Component {
 
         return (
             <Fragment>
-                {this.state.isUpdateInProgress || !isLoggedIn ? (
+                {this.state.isUpdateInProgress ? (
                     <Box
-                        // center the button/loading spinner horizontally and vertically.
+                        // center the loading spinner horizontally and vertically.
                         position="absolute"
                         top="0"
                         bottom="0"
@@ -775,78 +775,100 @@ export class ClassroomSync extends React.Component {
                         justifyContent="center"
                         alignItems="center"
                     >
-                        {this.state.isUpdateInProgress ? (<Loader />) : (
-                            <Button
-                                variant="primary"
-                                onClick={this.handleAuthClick}
-                                marginBottom={3}
-                                id="authorize_button"
-                                style={isLoggedIn ? { display: "none" } : { display: "block" }}
-                            >Connect With Google Classroom</Button>)}
+                        <Loader />
                     </Box>
-                ) : (
+                ) :
+                    (
                         <Fragment>
-                            {(this.state.lastSynced != null) ?
-                                <Box display="flex"
-                                    padding="5% 5% 0 5%"
-                                    alignContent="flex-end"
-                                    justifyContent="flex-end"
-                                >
-                                    <div>Last Sync from Google Classroom: {this.state.lastSynced} </div>
-                                </Box>
-                                : (<></>)}
-                            <Box
-                                display="flex"
-                                margin="1% 5% 0 5%">
-                                <ViewPicker
-                                    table={this.props.assignmentTable}
-                                    view={this.props.assignmentView}
-                                    onChange={(newView) => {
-                                        this.props.setAssignmentView(newView);
-                                    }}
-                                    width="33%"
-                                />
-                                <Box
-                                    display="flex"
-                                    alignContent="flex-end"
-                                    justifyContent="flex-end"
-                                    width="100%"
-                                >
-                                    <Tooltip
-                                        content="Get Assignments from Google Classroom"
-                                        placementX={Tooltip.placements.RIGHT}
-                                        placementY={Tooltip.placements.BOTTOM}
-                                        style={isLoggedIn ? { display: "flex" } : { display: "none" }}
-                                    >
-                                        <Button
-                                            variant="secondary"
-                                            icon="redo"
-                                            aria-label="Get Assignments from Google Classroom"
-                                            onClick={this.syncWithGoogleClassroom} />
-                                    </Tooltip>
-                                    <Tooltip
-                                        content="Sign Out of Google Classroom"
-                                        placementX={Tooltip.placements.RIGHT}
-                                        placementY={Tooltip.placements.BOTTOM}
-                                        style={isLoggedIn ? { display: "flex" } : { display: "none" }}
-                                    >
-                                        <Button
-                                            variant="secondary"
-                                            onClick={this.handleSignoutClick}
-                                            marginBottom={3}
-                                            id="signout_button"
-                                        >Sign Out</Button>
-                                    </Tooltip>
-                                </Box>
-                            </Box>
+                            {this.state.isLoggedIn ?
+                                (
+                                    <Fragment>
+                                        {(this.state.lastSynced != null) ?
+                                            <Box display="flex"
+                                                padding="5% 5% 0 5%"
+                                                alignContent="flex-end"
+                                                justifyContent="flex-end"
+                                            >
+                                                <div>Last Sync from Google Classroom: {this.state.lastSynced} </div>
+                                            </Box>
+                                            : (<></>)}
+                                        <Box
+                                            display="flex"
+                                            margin="1% 5% 0 5%">
+                                            <ViewPicker
+                                                table={this.props.assignmentTable}
+                                                view={this.props.assignmentView}
+                                                onChange={(newView) => {
+                                                    this.props.setAssignmentView(newView);
+                                                }}
+                                                width="33%"
+                                            />
+                                            <Box
+                                                display="flex"
+                                                alignContent="flex-end"
+                                                justifyContent="flex-end"
+                                                width="100%"
+                                            >
+                                                <Tooltip
+                                                    content="Get Assignments from Google Classroom"
+                                                    placementX={Tooltip.placements.RIGHT}
+                                                    placementY={Tooltip.placements.BOTTOM}
+                                                    style={isLoggedIn ? { display: "flex" } : { display: "none" }}
+                                                >
+                                                    <Button
+                                                        variant="secondary"
+                                                        icon="redo"
+                                                        aria-label="Get Assignments from Google Classroom"
+                                                        onClick={this.syncWithGoogleClassroom} />
+                                                </Tooltip>
+                                                <Tooltip
+                                                    content="Sign Out of Google Classroom"
+                                                    placementX={Tooltip.placements.RIGHT}
+                                                    placementY={Tooltip.placements.BOTTOM}
+                                                    style={isLoggedIn ? { display: "flex" } : { display: "none" }}
+                                                >
+                                                    <Button
+                                                        variant="secondary"
+                                                        onClick={this.handleSignoutClick}
+                                                        marginBottom={3}
+                                                        id="signout_button"
+                                                    >Sign Out</Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Box>
 
-                            <div style={{ marginRight: "2%" }}>
-                                <br></br>
-                                <Box>
-                                    {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials} />) : (<></>)}
-                                </Box>
-                                <br></br>
-                            </div>
+                                        <div style={{ marginRight: "2%" }}>
+                                            <br></br>
+                                            <Box>
+                                                {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials} />) : (<></>)}
+                                            </Box>
+                                            <br></br>
+                                        </div>
+                                    </Fragment>
+                                ) :
+                                (
+                                    <Box
+                                        // center the button horizontally and vertically.
+                                        position="absolute"
+                                        top="0"
+                                        bottom="0"
+                                        left="0"
+                                        right="0"
+                                        display="flex"
+                                        flexDirection="column"
+                                        justifyContent="center"
+                                        alignItems="center"
+                                    >
+                                        <Button
+                                            variant="primary"
+                                            onClick={this.handleAuthClick}
+                                            marginBottom={3}
+                                            id="authorize_button"
+                                            style={isLoggedIn ? { display: "none" } : { display: "block" }}
+                                        >Connect With Google Classroom</Button>
+                                    </Box>
+                                )
+                            }
                         </Fragment>
                     )}
             </Fragment>
