@@ -10,35 +10,128 @@ export const assignmentDueTypes = {
   UPCOMING: "Upcoming"
 }
 
-function ShowIndividualAssignment({record, onClick}){
+function ShowIndividualAssignment({record, materials, onClick}){
+  var materials = getMaterialsForAssignment(record.getCellValue("AssignmentId"), materials);
+  var points = record.getCellValue("Points");
   return (
     <Fragment>
       <br></br>
       <Box width="100%" margin={2} padding={3} border="thick" borderRadius={5} overflowY="auto">
-        <a
-          style={{cursor: 'pointer', flex: 'auto', padding: 8, alignSelf: 'right'}}
-          onClick={() => {
-              onClick(record);
-          }}>
-            <Icon name="x" size={16} style={{float:"right", color:"gray"}} />
-        </a>
-        <br></br>
-        <Text size="xlarge" style={{float:"right"}}>Points: {record.getCellValue("Points")}</Text>
+        <Box>
+          <a
+            style={{cursor: 'pointer', flex: 'auto', padding: 8, alignSelf: 'right'}}
+            onClick={() => {
+                onClick(record);
+            }}>
+              <Icon name="x" size={16} style={{float:"right", color:"gray"}} />
+          </a>
+          <br></br>
+          {points ? (<Text size="xlarge" style={{float:"right"}}>Points: {points}</Text>) : (<></>)}
+          <br></br>
+          <Link
+            href={record.getCellValue("Link")}
+            target="_blank"
+            style={{float:"right"}}
+            icon="hyperlink"
+          >
+            View in Google Classroom
+          </Link>
+        </Box>
         <Heading>{record.getCellValue("Course")} | {record.getCellValue("Topic")}</Heading>
         <Heading>{record.getCellValue("Assignment")}{record.getCellValue("Submitted") === true ? " (Complete)" : ""}</Heading>
         <Text>{record.getCellValue("Description")}</Text>
         <br></br>
-        <Link
-          href={record.getCellValue("Link")}
-          target="_blank"
-          style={{float:"right"}}
-          icon="hyperlink"
-        >
-          View in Google Classroom
-        </Link>
+        <br></br>
+        {materials ? (<Heading>Materials</Heading>) : (<></>)}
+        <>{materials}</>
       </Box>
     </Fragment>
   );
+}
+
+function getMaterialsForAssignment(assignmentId, materialsList){
+  var filteredRecords = _.filter(materialsList, function (material) {
+    //only show assignments that haven't been turned in yet and are overdue
+    return material.getCellValue("AssignmentId") === assignmentId;
+  });
+
+  const materialsDisplay = (filteredRecords !=null && filteredRecords.length > 0) ? filteredRecords.map((record, index) => {
+    var type = record.getCellValue("MaterialType").name;
+    var embedUrl = record.getCellValue("Link");
+    if(type === "YouTube Video") {
+      embedUrl = getYoutubePreviewUrl(embedUrl);
+    }
+    return (
+      <Box
+        alignItems="center"
+        overflowY="auto"
+        key={index}
+        width="inherit"
+    >
+      {/* TODO: Figure out how to make this toggle the materials */}
+      {/* <a
+      style={{cursor: 'pointer', flex: 'auto', padding: 8}}
+      onClick={() => {
+        showMaterial = !showMaterial;
+        console.log("showMaterial: " + showMaterial);
+      }}> */}
+      <Text>
+        {record.primaryCellValueAsString || 'Untitled Material'}
+      </Text>
+      <br></br>
+      {(type === "Drive File" || type === "YouTube Video" || type ===  "Form") && (embedUrl != "") ?
+        (
+          // this feature was adapted from the opensource code for blocks-url-preview
+          // see https://github.com/Airtable/blocks-url-preview for more
+        <iframe
+          // Using `key=embedUrl` will immediately unmount the
+          // old iframe when we're switching to a new
+          // preview. Otherwise, the old iframe would be reused,
+          // and the old preview would stay onscreen while the new
+          // one was loading, which would be a confusing user
+          // experience.
+          key={embedUrl}
+          style={{flex: 'auto', width:'100%', height:'500px'}}
+          src={embedUrl}
+          frameBorder="0"
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+      />) : (<></>)
+      }
+      
+      {/* </a> */}
+
+      <br></br>
+    </Box>)
+  }) : null;
+  return materialsDisplay;
+}
+
+
+// this function was copied from the opensource code for blocks-url-preview
+// see https://github.com/Airtable/blocks-url-preview for more
+function getYoutubePreviewUrl(url) {
+  // Standard youtube urls, e.g. https://www.youtube.com/watch?v=KYz2wyBy3kc
+  let match = url.match(/youtube\.com\/.*v=([\w-]+)(&|$)/);
+
+  if (match) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+  }
+
+  // Shortened youtube urls, e.g. https://youtu.be/KYz2wyBy3kc
+  match = url.match(/youtu\.be\/([\w-]+)(\?|$)/);
+  if (match) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+  }
+
+  // Youtube playlist urls, e.g. youtube.com/playlist?list=KYz2wyBy3kc
+  match = url.match(/youtube\.com\/playlist\?.*list=([\w-]+)(&|$)/);
+  if (match) {
+      return `https://www.youtube.com/embed/videoseries?list=${match[1]}`;
+  }
+
+  // URL isn't for a youtube video
+  return null;
 }
 
 function DisplayAssignmentHeaders({records, onClick, toggleShow, showHide, assignmentDue}){
@@ -172,7 +265,7 @@ export class ShowAssignments extends React.Component {
           </table>
         ) : (<></>)}
         {this.state.showIndividualAssignment ? (
-          <ShowIndividualAssignment record={this.state.selectedAssignment} onClick={this.showHideAssignment}/>
+          <ShowIndividualAssignment record={this.state.selectedAssignment} materials={this.props.materialRecords}  onClick={this.showHideAssignment}/>
         ) : (<></>)}
       </>
     );

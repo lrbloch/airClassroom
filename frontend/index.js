@@ -39,8 +39,11 @@ function AirClassroomBlock() {
     }
     const assignments = useRecords(assignmentTable, opts);
 
+    const materialsTable = base.getTableByNameIfExists(tableType.MATERIAL);
+    const materials = useRecords(materialsTable);
+
     return (
-        <ClassroomSync base={base} assignments={assignments}/>
+        <ClassroomSync base={base} assignments={assignments} materials={materials}/>
     );
 }
 

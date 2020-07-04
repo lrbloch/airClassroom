@@ -200,7 +200,7 @@ export class ClassroomSync extends React.Component {
         const query = await materialTable.selectRecordsAsync();
         if (newMaterials?.length > 0) {
             await self.asyncForEach(newMaterials, async (material) => {
-                var materialType = material.link ? "Link" : material.driveFile ? "Drive File" : material.youtubeVideo ? "YouTube Video" : "Other";
+                var materialType = material.link ? "Link" : material.driveFile ? "Drive File" : material.youtubeVideo ? "YouTube Video" : material.form ? "Form" : "Other";
                 var materialRecord;
                 switch (materialType) {
                     case "Link":
@@ -232,6 +232,11 @@ export class ClassroomSync extends React.Component {
                         //     },
                         //     "shareMode": "VIEW"
                         // }
+                        if(material.driveFile.shareMode === "STUDENT_COPY")
+                        {
+                            //TODO: add way for student to access their own copy of the file
+                            console.log("this is the teacher's copy of the file");
+                        }
                         materialRecord = {
                             fields: {
                                 'Material': material.driveFile.driveFile.title ? material.driveFile.driveFile.title : "Untitled File",
@@ -240,7 +245,8 @@ export class ClassroomSync extends React.Component {
                                     url: material.driveFile.driveFile.alternateLink,
                                 }],
                                 'MaterialType': { name: materialType },
-                                'AssignmentId': parseInt(assignmentId)
+                                'AssignmentId': parseInt(assignmentId),
+                                'Teacher Copy': (material.driveFile.shareMode === "STUDENT_COPY")
                             }
                         }
                         break;
@@ -257,6 +263,25 @@ export class ClassroomSync extends React.Component {
                                 'Link': material.youtubeVideo.alternateLink,
                                 'Image': [{
                                     url: material.youtubeVideo.thumbnailUrl,
+                                }],
+                                'MaterialType': { name: materialType },
+                                'AssignmentId': parseInt(assignmentId)
+                            }
+                        }
+                        break;
+                    case "Form":
+                        // "form": {
+                        //     "formUrl": string,
+                        //     "responseUrl": string,
+                        //     "title": string,
+                        //     "thumbnailUrl": string
+                        //   }                       
+                        materialRecord = {
+                            fields: {
+                                'Material': material.form.title ? material.form.title : "Untitled Form",
+                                'Link': material.form.formUrl,
+                                'Image': [{
+                                    url: material.form.thumbnailUrl,
                                 }],
                                 'MaterialType': { name: materialType },
                                 'AssignmentId': parseInt(assignmentId)
@@ -397,7 +422,6 @@ export class ClassroomSync extends React.Component {
                                 }
                             },
                             { name: 'Description', type: FieldType.MULTILINE_TEXT },
-                            { name: 'Materials', type: FieldType.SINGLE_LINE_TEXT },
                             {name: 'Course', type: FieldType.SINGLE_LINE_TEXT},
                             { name: 'Topic', type: FieldType.SINGLE_LINE_TEXT },
                             { name: 'Link', type: FieldType.URL },
@@ -462,7 +486,11 @@ export class ClassroomSync extends React.Component {
                                 options: {
                                     precision: 0,
                                 }
-                            }
+                            },
+                            {name: 'Teacher Copy', type: FieldType.CHECKBOX, options: {
+                                icon: 'check',
+                                color: 'greenBright'
+                            }},
                         ];
                     }
                     break;
@@ -769,7 +797,7 @@ export class ClassroomSync extends React.Component {
                         </Box>
                         <br></br>
                         <Box>
-                            {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments}/>) : (<></>)}
+                            {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials}/>) : (<></>)}
                         </Box>
                     </Fragment>
                 )}
