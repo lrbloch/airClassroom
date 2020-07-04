@@ -35,11 +35,10 @@ const submittedStatusType = {
 
 
 var topicIds = {};
-const DEBUG = false;
+var courseIds = {};
+const DEBUG = true;
 
 export class ClassroomSync extends React.Component {
-
-
     constructor(props) {
         super(props);
         this.state = {
@@ -67,6 +66,7 @@ export class ClassroomSync extends React.Component {
         this.asyncForEach = this.asyncForEach.bind(this);
         this.syncTopics = this.syncTopics.bind(this);
         this.getTopicNameFromId = this.getTopicNameFromId.bind(this);
+        this.getCourseNameFromId = this.getCourseNameFromId.bind(this);
         // Promise Interface can ensure load the script only once.
         this.gapi_script = this.load_script(GOOGLE_API_ENDPOINT);
     }
@@ -398,9 +398,7 @@ export class ClassroomSync extends React.Component {
                             },
                             { name: 'Description', type: FieldType.MULTILINE_TEXT },
                             { name: 'Materials', type: FieldType.SINGLE_LINE_TEXT },
-                            {
-                                name: 'CourseId', type: FieldType.NUMBER, options: { precision: 0 }
-                            },
+                            {name: 'Course', type: FieldType.SINGLE_LINE_TEXT},
                             { name: 'Topic', type: FieldType.SINGLE_LINE_TEXT },
                             { name: 'Link', type: FieldType.URL },
                             { name: 'Points', type: FieldType.NUMBER, options: { precision: 0 } },
@@ -518,10 +516,11 @@ export class ClassroomSync extends React.Component {
                     || (existingRecord.getCellValue("Assignment") != compareRecord.fieldsAssignment)
                     || (existingRecord.getCellValue("Description") != compareRecord.fields.Description)
                     || (existingRecord.getCellValue("Topic") != compareRecord.fields.Topic)
-                    || (existingRecord.getCellValue("CourseId") != compareRecord.fields.CourseId)
+                    || (existingRecord.getCellValue("Course") != compareRecord.fields.Course)
                     || (existingRecord.getCellValue("Link") != compareRecord.fields.Link)
                     || (existingRecord.getCellValue("Points") != compareRecord.fields.Points)
                     || (existingRecord.getCellValue("Updated") != compareRecord.fields.Updated)
+                    || (existingRecord.getCellValue("Submitted") != compareRecord.fields.Submitted)
                     || (existingRecord.getCellValue("Due") != compareRecord.fields.DescriptionHeading));
             case tableType.MATERIAL:
                 return ((existingRecord.getCellValue("Material") != compareRecord.fields.Material)
@@ -586,6 +585,7 @@ export class ClassroomSync extends React.Component {
                     await self.getAssignments(courseId).then(async function () {
                         await self.delayAsync(50);
                     });
+                    courseIds[courseRecord.fields.CourseId] = courseRecord.fields.Course;
                 });
                 await query.unloadData();
             }
@@ -622,7 +622,6 @@ export class ClassroomSync extends React.Component {
                 var materials = assignment.materials;
                 await self.syncMaterials(materials, assignment.id);
                 var topicName = self.getTopicNameFromId(assignment.topicId);
-                console.log("topicName: " + topicName);
                 if(assignment.dueDate)
                 {
                     var dueDateTime = new Date(Date.UTC(assignment.dueDate.year, assignment.dueDate.month-1, assignment.dueDate.day, assignment.dueTime.hours, assignment.dueTime.minutes, 0, 0));
@@ -634,14 +633,14 @@ export class ClassroomSync extends React.Component {
                 var submissionEntries = studentSubmissions.result ? studentSubmissions.result.studentSubmissions : null;
                 var submittedStatus = submissionEntries ? submittedStatusType[submissionEntries[0].state] : false;
                 
-                console.log("student submissions: " + JSON.stringify(submissionEntries));
-                console.log("Submitted: " + submittedStatus);
+                //console.log("student submissions: " + JSON.stringify(submissionEntries));
+                //console.log("Submitted: " + submittedStatus);
                 var assignmentRecord = {
                     fields: {
                         'AssignmentId': parseInt(assignment.id),
                         'Assignment': assignment.title,
                         'Description': assignment.description,
-                        'CourseId': parseInt(id),
+                        'Course': self.getCourseNameFromId(id),
                         'Topic': topicName,
                         'Link': assignment.alternateLink,
                         'Points': assignment.maxPoints,
@@ -681,6 +680,10 @@ export class ClassroomSync extends React.Component {
         return topicIds[topicId];
     }
 
+    getCourseNameFromId(courseId) {
+        return courseIds[courseId];
+    }
+
     delayAsync(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -717,7 +720,7 @@ export class ClassroomSync extends React.Component {
         }
 
         return (
-            <>
+            <div style={{marginRight: "2%"}}>
                 {this.state.isUpdateInProgress || !isLoggedIn? (
                     <Box
                     // center the button/loading spinner horizontally and vertically.
@@ -741,11 +744,11 @@ export class ClassroomSync extends React.Component {
                         >Connect and Sync with Google Classroom</Button>)}
                     </Box>
                 ) : (
-                        <Fragment>
+                    <Fragment>
+                        <Box>
                             {(this.state.lastSynced != null && this.state.isLoggedIn) ?
                                 (<div>Last Synced: {this.state.lastSynced} </div>) : (<></>)}
                             <br></br>
-                            <div>
                             <Button
                                 variant="secondary"
                                 onClick={this.handleSignoutClick}
@@ -763,12 +766,15 @@ export class ClassroomSync extends React.Component {
                             >
                                 Sync With Google Classroom
                             </Button>
+                        </Box>
+                        <br></br>
+                        <Box>
                             {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments}/>) : (<></>)}
-                            </div>
-                        </Fragment>
-                    )}
+                        </Box>
+                    </Fragment>
+                )}
 
-            </>
+            </div>
         );
     }
 }

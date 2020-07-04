@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { Box, Heading, Icon } from "@airtable/blocks/ui";
+import { Box, Link, Heading, Icon, Text } from "@airtable/blocks/ui";
 import moment from 'moment';
 moment().format();
 
@@ -14,7 +14,7 @@ function ShowIndividualAssignment({record, onClick}){
   return (
     <Fragment>
       <br></br>
-      <Box margin={2} padding={3} border="thick" borderRadius={5} overflow="auto">
+      <Box width="100%" margin={2} padding={3} border="thick" borderRadius={5} overflowY="auto">
         <a
           style={{cursor: 'pointer', flex: 'auto', padding: 8, alignSelf: 'right'}}
           onClick={() => {
@@ -23,7 +23,19 @@ function ShowIndividualAssignment({record, onClick}){
             <Icon name="x" size={16} style={{float:"right", color:"gray"}} />
         </a>
         <br></br>
-        <Heading>{record.getCellValue("Assignment")}</Heading>
+        <Text size="xlarge" style={{float:"right"}}>Points: {record.getCellValue("Points")}</Text>
+        <Heading>{record.getCellValue("Course")} | {record.getCellValue("Topic")}</Heading>
+        <Heading>{record.getCellValue("Assignment")}{record.getCellValue("Submitted") === true ? " (Complete)" : ""}</Heading>
+        <Text>{record.getCellValue("Description")}</Text>
+        <br></br>
+        <Link
+          href={record.getCellValue("Link")}
+          target="_blank"
+          style={{float:"right"}}
+          icon="hyperlink"
+        >
+          View in Google Classroom
+        </Link>
       </Box>
     </Fragment>
   );
@@ -69,7 +81,8 @@ function filterRecords(records, onClick, category) {
   switch(category){
     case assignmentDueTypes.OVERDUE:
       filteredRecords = _.filter(records, function (record) {
-        return moment(record.getCellValue("Due")).isBefore(now, 'day');
+        //only show assignments that haven't been turned in yet and are overdue
+        return record.getCellValue("Submitted") != true && moment(record.getCellValue("Due")).isBefore(now, 'day');
       });
       break;
     case assignmentDueTypes.TODAY:

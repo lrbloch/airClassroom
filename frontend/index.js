@@ -44,5 +44,5 @@ function AirClassroomBlock() {
     );
 }
 
-initializeBlock(() => <AirClassroomBlock />);
+initializeBlock(() => <AirClassroomBlock/>);
 
