@@ -1,9 +1,9 @@
 import { Loader, Button, Box, ViewPicker, Tooltip } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
-import { FieldType, Table } from '@airtable/blocks/models';
+import { FieldType } from '@airtable/blocks/models';
 import ShowAssignments from './ShowAssignments';
 import { GOOGLE_API_ENDPOINT, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE } from './index';
-import {globalConfig} from '@airtable/blocks';
+import { globalConfig } from '@airtable/blocks';
 
 /** @enum {string} */
 export const tableType = {
@@ -37,7 +37,7 @@ const submittedStatusType = {
 
 var topicIds = {};
 var courseIds = {};
-const DEBUG = false;
+const DEBUG = true;
 
 export class ClassroomSync extends React.Component {
     constructor(props) {
@@ -74,18 +74,17 @@ export class ClassroomSync extends React.Component {
 
     do_load() {
         var self = this;
-        if(DEBUG)
-        {
+        if (DEBUG) {
             self.setState({ 'status': 'done' });
         }
-        else{
+        else {
             this.gapi_script.then(function () {
                 self.setState({ 'status': 'done' });
             }).catch(function () {
                 self.setState({ 'status': 'error' });
             });
         }
-        
+
     }
 
     /**
@@ -127,7 +126,7 @@ export class ClassroomSync extends React.Component {
             gapi.auth2.getAuthInstance().isSignedIn.listen(self.updateSigninStatus);
             // Handle the initial sign-in state.
             self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-            if(!DEBUG) {
+            if (!DEBUG) {
                 self.syncWithGoogleClassroom();
             }
         }, function (error) {
@@ -153,7 +152,7 @@ export class ClassroomSync extends React.Component {
                 var date = new Date(Date.now());
                 var lastSyncedString = date.toTimeString().replace(/([0-9]+:[0-9]+:[0-9]+).*/, '$1').toAmPmString();
                 self.setState({ 'isUpdateInProgress': false });
-                self.setState({ 'lastSynced':  lastSyncedString});
+                self.setState({ 'lastSynced': lastSyncedString });
                 if (globalConfig.hasPermissionToSet('lastSynced', lastSyncedString)) {
                     globalConfig.setAsync('lastSynced', lastSyncedString);
                 }
@@ -223,7 +222,7 @@ export class ClassroomSync extends React.Component {
                                 'AssignmentId': parseInt(assignmentId)
                             }
                         }
-                        if(material.link.thumbnailUrl){
+                        if (material.link.thumbnailUrl) {
                             materialRecord.fields['Image'] = [{
                                 url: material.link.thumbnailUrl.replace("https://classroom.google.com/webthumbnail?url=", ""),
                             }];
@@ -238,8 +237,7 @@ export class ClassroomSync extends React.Component {
                         //     },
                         //     "shareMode": "VIEW"
                         // }
-                        if(material.driveFile.shareMode === "STUDENT_COPY")
-                        {
+                        if (material.driveFile.shareMode === "STUDENT_COPY") {
                             //TODO: add way for student to access their own copy of the file
                             console.log("this is the teacher's copy of the file");
                         }
@@ -429,16 +427,19 @@ export class ClassroomSync extends React.Component {
                                 }
                             },
                             { name: 'Description', type: FieldType.MULTILINE_TEXT },
-                            {name: 'Course', type: FieldType.SINGLE_LINE_TEXT},
+                            { name: 'Course', type: FieldType.SINGLE_LINE_TEXT },
                             { name: 'Topic', type: FieldType.SINGLE_LINE_TEXT },
                             { name: 'Link', type: FieldType.URL },
                             { name: 'Points', type: FieldType.NUMBER, options: { precision: 0 } },
                             { name: 'Updated', type: FieldType.SINGLE_LINE_TEXT },
-                            {name: 'Submitted', type: FieldType.CHECKBOX, options: {
-                                icon: 'check',
-                                color: 'greenBright'
-                            }},
-                            { name: 'Due', type: FieldType.DATE_TIME, options: 
+                            {
+                                name: 'Submitted', type: FieldType.CHECKBOX, options: {
+                                    icon: 'check',
+                                    color: 'greenBright'
+                                }
+                            },
+                            {
+                                name: 'Due', type: FieldType.DATE_TIME, options:
                                 {
                                     dateFormat: {
                                         name: 'us'
@@ -494,10 +495,12 @@ export class ClassroomSync extends React.Component {
                                     precision: 0,
                                 }
                             },
-                            {name: 'Teacher Copy', type: FieldType.CHECKBOX, options: {
-                                icon: 'check',
-                                color: 'greenBright'
-                            }},
+                            {
+                                name: 'Teacher Copy', type: FieldType.CHECKBOX, options: {
+                                    icon: 'check',
+                                    color: 'greenBright'
+                                }
+                            },
                         ];
                     }
                     break;
@@ -659,9 +662,8 @@ export class ClassroomSync extends React.Component {
                 var materials = assignment.materials;
                 await self.syncMaterials(materials, assignment.id);
                 var topicName = self.getTopicNameFromId(assignment.topicId);
-                if(assignment.dueDate)
-                {
-                    var dueDateTime = new Date(Date.UTC(assignment.dueDate.year, assignment.dueDate.month-1, assignment.dueDate.day, assignment.dueTime.hours, assignment.dueTime.minutes, 0, 0));
+                if (assignment.dueDate) {
+                    var dueDateTime = new Date(Date.UTC(assignment.dueDate.year, assignment.dueDate.month - 1, assignment.dueDate.day, assignment.dueTime.hours, assignment.dueTime.minutes, 0, 0));
                 }
                 var studentSubmissions = await gapi.client.classroom.courses.courseWork.studentSubmissions.list({
                     courseId: id,
@@ -669,7 +671,7 @@ export class ClassroomSync extends React.Component {
                 });
                 var submissionEntries = studentSubmissions.result ? studentSubmissions.result.studentSubmissions : null;
                 var submittedStatus = submissionEntries ? submittedStatusType[submissionEntries[0].state] : false;
-                
+
                 //console.log("student submissions: " + JSON.stringify(submissionEntries));
                 //console.log("Submitted: " + submittedStatus);
                 var assignmentRecord = {
@@ -760,93 +762,93 @@ export class ClassroomSync extends React.Component {
 
         return (
             <Fragment>
-                {this.state.isUpdateInProgress || !isLoggedIn? (
+                {this.state.isUpdateInProgress || !isLoggedIn ? (
                     <Box
-                    // center the button/loading spinner horizontally and vertically.
-                    position="absolute"
-                    top="0"
-                    bottom="0"
-                    left="0"
-                    right="0"
-                    display="flex"
-                    flexDirection="column"
-                    justifyContent="center"
-                    alignItems="center"
+                        // center the button/loading spinner horizontally and vertically.
+                        position="absolute"
+                        top="0"
+                        bottom="0"
+                        left="0"
+                        right="0"
+                        display="flex"
+                        flexDirection="column"
+                        justifyContent="center"
+                        alignItems="center"
                     >
                         {this.state.isUpdateInProgress ? (<Loader />) : (
-                        <Button
-                            variant="primary"
-                            onClick={this.handleAuthClick}
-                            marginBottom={3}
-                            id="authorize_button"
-                            style={isLoggedIn ? { display: "none" } : { display: "block" }}
-                        >Connect and Sync with Google Classroom</Button>)}
+                            <Button
+                                variant="primary"
+                                onClick={this.handleAuthClick}
+                                marginBottom={3}
+                                id="authorize_button"
+                                style={isLoggedIn ? { display: "none" } : { display: "block" }}
+                            >Connect and Sync with Google Classroom</Button>)}
                     </Box>
                 ) : (
-                    <Fragment>
-                        {(this.state.lastSynced != null) ?
-                        <Box display="flex"
-                            padding="5% 5% 0 5%"
-                            alignContent="flex-end"
-                            justifyContent="flex-end"
-                        >
-                            <div>Last Synced: {this.state.lastSynced} </div>
-                        </Box>
-                        : (<></>)}
-                        <Box 
-                        display="flex"
-                        margin="1% 5% 0 5%">
-                            <ViewPicker
-                                table={this.props.assignmentTable}
-                                view={this.props.assignmentView}
-                                onChange={(newView) => {
-                                    this.props.setAssignmentView(newView);
-                                }}
-                                width="33%"
-                            />
-                            <Box 
-                            display="flex"
-                            alignContent="flex-end"
-                            justifyContent="flex-end"
-                            width="100%"
-                            >
-                            <Tooltip
-                                content="Get Assignments from Google Classroom"
-                                placementX={Tooltip.placements.RIGHT}
-                                placementY={Tooltip.placements.BOTTOM}
-                                style={isLoggedIn ? { display: "flex"} : { display: "none" }}
-                            >
-                                <Button 
-                                    variant="secondary" 
-                                    icon="redo" 
-                                    aria-label="Get Assignments from Google Classroom" 
-                                    onClick={this.syncWithGoogleClassroom} />
-                            </Tooltip>
-                            <Tooltip
-                                content="Sign Out of Google Classroom"
-                                placementX={Tooltip.placements.RIGHT}
-                                placementY={Tooltip.placements.BOTTOM}
-                                style={isLoggedIn ? { display: "flex"} : { display: "none" }}
-                            >
-                                <Button
-                                    variant="secondary"
-                                    onClick={this.handleSignoutClick}
-                                    marginBottom={3}
-                                    id="signout_button"
-                                >Sign Out</Button>
-                            </Tooltip>
+                        <Fragment>
+                            {(this.state.lastSynced != null) ?
+                                <Box display="flex"
+                                    padding="5% 5% 0 5%"
+                                    alignContent="flex-end"
+                                    justifyContent="flex-end"
+                                >
+                                    <div>Last Synced: {this.state.lastSynced} </div>
+                                </Box>
+                                : (<></>)}
+                            <Box
+                                display="flex"
+                                margin="1% 5% 0 5%">
+                                <ViewPicker
+                                    table={this.props.assignmentTable}
+                                    view={this.props.assignmentView}
+                                    onChange={(newView) => {
+                                        this.props.setAssignmentView(newView);
+                                    }}
+                                    width="33%"
+                                />
+                                <Box
+                                    display="flex"
+                                    alignContent="flex-end"
+                                    justifyContent="flex-end"
+                                    width="100%"
+                                >
+                                    <Tooltip
+                                        content="Get Assignments from Google Classroom"
+                                        placementX={Tooltip.placements.RIGHT}
+                                        placementY={Tooltip.placements.BOTTOM}
+                                        style={isLoggedIn ? { display: "flex" } : { display: "none" }}
+                                    >
+                                        <Button
+                                            variant="secondary"
+                                            icon="redo"
+                                            aria-label="Get Assignments from Google Classroom"
+                                            onClick={this.syncWithGoogleClassroom} />
+                                    </Tooltip>
+                                    <Tooltip
+                                        content="Sign Out of Google Classroom"
+                                        placementX={Tooltip.placements.RIGHT}
+                                        placementY={Tooltip.placements.BOTTOM}
+                                        style={isLoggedIn ? { display: "flex" } : { display: "none" }}
+                                    >
+                                        <Button
+                                            variant="secondary"
+                                            onClick={this.handleSignoutClick}
+                                            marginBottom={3}
+                                            id="signout_button"
+                                        >Sign Out</Button>
+                                    </Tooltip>
+                                </Box>
                             </Box>
-                        </Box>
-                       
-                        <div style={{marginRight: "2%"}}>
-                        <br></br>
-                        <Box>
-                            {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials}/>) : (<></>)}
-                        </Box>
-                        <br></br>
-                        </div>
-                    </Fragment>
-                )}
+
+                            <div style={{ marginRight: "2%" }}>
+                                <br></br>
+                                <Box>
+                                    {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials} />) : (<></>)}
+                                </Box>
+                                <br></br>
+                            </div>
+                        </Fragment>
+                    )}
             </Fragment>
         );
     }
