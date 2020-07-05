@@ -39,7 +39,6 @@ const submittedStatusType = {
 
 var topicIds = {};
 var courseIds = {};
-const DEBUG = false;
 
 export class ClassroomSync extends React.Component {
     constructor(props) {
@@ -76,17 +75,12 @@ export class ClassroomSync extends React.Component {
 
     do_load() {
         var self = this;
-        if (DEBUG) {
+        this.gapi_script.then(function () {
             self.setState({ 'status': 'done' });
-        }
-        else {
-            this.gapi_script.then(function () {
-                self.setState({ 'status': 'done' });
-            }).catch(function (error) {
-                self.setState({ 'status': 'error' });
-                console.error("error: " + error);
-            });
-        }
+        }).catch(function (error) {
+            self.setState({ 'status': 'error' });
+            console.error("error: " + error);
+        });
 
     }
 
@@ -129,9 +123,7 @@ export class ClassroomSync extends React.Component {
             gapi.auth2.getAuthInstance().isSignedIn.listen(self.updateSigninStatus);
             // Handle the initial sign-in state.
             self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-            if (!DEBUG) {
-                self.syncWithGoogleClassroom();
-            }
+            self.syncWithGoogleClassroom();
         }, function (error) {
             console.error("error: " + error);
             alert(JSON.stringify(error, null, 2));
@@ -697,7 +689,6 @@ export class ClassroomSync extends React.Component {
                         'hour': assignment.dueTime.hours,
                         'minute': assignment.dueTime.minutes
                     })
-                    // new Date(Date.UTC(assignment.dueDate.year, assignment.dueDate.month - 1, assignment.dueDate.day, assignment.dueTime.hours, assignment.dueTime.minutes, 0, 0));
                 }
                 var studentSubmissions = await gapi.client.classroom.courses.courseWork.studentSubmissions.list({
                     courseId: id,
