@@ -4,6 +4,8 @@ import { FieldType } from '@airtable/blocks/models';
 import ShowAssignments from './ShowAssignments';
 import { GOOGLE_API_ENDPOINT, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE } from './index';
 import { globalConfig } from '@airtable/blocks';
+import moment from 'moment';
+moment().format();
 
 /** @enum {string} */
 export const tableType = {
@@ -37,7 +39,7 @@ const submittedStatusType = {
 
 var topicIds = {};
 var courseIds = {};
-const DEBUG = true;
+const DEBUG = false;
 
 export class ClassroomSync extends React.Component {
     constructor(props) {
@@ -80,8 +82,9 @@ export class ClassroomSync extends React.Component {
         else {
             this.gapi_script.then(function () {
                 self.setState({ 'status': 'done' });
-            }).catch(function () {
+            }).catch(function (error) {
                 self.setState({ 'status': 'error' });
+                console.error("error: " + error);
             });
         }
 
@@ -130,6 +133,7 @@ export class ClassroomSync extends React.Component {
                 self.syncWithGoogleClassroom();
             }
         }, function (error) {
+            console.error("error: " + error);
             alert(JSON.stringify(error, null, 2));
         });
     }
@@ -177,7 +181,8 @@ export class ClassroomSync extends React.Component {
                         const recordIds = await table.createRecordsAsync(createBatch);
                         console.debug(`new records created with ID: ${recordIds}`);
                     }
-                    catch{
+                    catch(e){
+                        console.error("error creating records: " + e)
                         self.setState({ 'status': 'error' });
                     }
                     i += MAX_RECORDS_PER_UPDATE;
@@ -196,7 +201,8 @@ export class ClassroomSync extends React.Component {
                         try{
                             await table.updateRecordsAsync(updateBatch);
                         }
-                        catch{
+                        catch(e){
+                            console.error("error updating records: " + e)
                             self.setState({ 'status': 'error' });
                         }
                     }
@@ -256,13 +262,16 @@ export class ClassroomSync extends React.Component {
                             fields: {
                                 'Material': material.driveFile.driveFile.title ? material.driveFile.driveFile.title : "Untitled File",
                                 'Link': material.driveFile.driveFile.alternateLink,
-                                'Image': [{
-                                    url: material.driveFile.driveFile.alternateLink,
-                                }],
                                 'MaterialType': { name: materialType },
                                 'AssignmentId': parseInt(assignmentId),
                                 'Teacher Copy': (material.driveFile.shareMode === "STUDENT_COPY")
                             }
+                        }
+                        if(material.driveFile.driveFile.alternateLink)
+                        {
+                            materialRecord.fields['Image'] = [{
+                            url: material.driveFile.driveFile.alternateLink
+                            }];
                         }
                         break;
                     case "YouTube Video":
@@ -276,12 +285,15 @@ export class ClassroomSync extends React.Component {
                             fields: {
                                 'Material': material.youtubeVideo.title ? material.youtubeVideo.title : "Untitled Video",
                                 'Link': material.youtubeVideo.alternateLink,
-                                'Image': [{
-                                    url: material.youtubeVideo.thumbnailUrl,
-                                }],
                                 'MaterialType': { name: materialType },
                                 'AssignmentId': parseInt(assignmentId)
                             }
+                        }
+                        if(material.youtubeVideo.thumbnailUrl)
+                        {
+                            materialRecord.fields['Image'] = [{
+                            url: material.youtubeVideo.thumbnailUrl
+                            }];
                         }
                         break;
                     case "Form":
@@ -295,12 +307,15 @@ export class ClassroomSync extends React.Component {
                             fields: {
                                 'Material': material.form.title ? material.form.title : "Untitled Form",
                                 'Link': material.form.formUrl,
-                                'Image': [{
-                                    url: material.form.thumbnailUrl,
-                                }],
                                 'MaterialType': { name: materialType },
                                 'AssignmentId': parseInt(assignmentId)
                             }
+                        }
+                        if(material.form.thumbnailUrl)
+                        {
+                            materialRecord.fields['Image'] = [{
+                            url: material.form.thumbnailUrl
+                            }];
                         }
                         break;
                     case "Other":
@@ -496,6 +511,7 @@ export class ClassroomSync extends React.Component {
                                         { name: "Link" },
                                         { name: "Drive File" },
                                         { name: "YouTube Video" },
+                                        { name: "Form" },
                                         { name: "Other" }
                                     ]
                                 }
@@ -674,7 +690,14 @@ export class ClassroomSync extends React.Component {
                 await self.syncMaterials(materials, assignment.id);
                 var topicName = self.getTopicNameFromId(assignment.topicId);
                 if (assignment.dueDate) {
-                    var dueDateTime = new Date(Date.UTC(assignment.dueDate.year, assignment.dueDate.month - 1, assignment.dueDate.day, assignment.dueTime.hours, assignment.dueTime.minutes, 0, 0));
+                    var dueDateTime = moment.utc().set({
+                        'year':assignment.dueDate.year,
+                        'month': assignment.dueDate.month - 1,
+                        'date': assignment.dueDate.day,
+                        'hour': assignment.dueTime.hours,
+                        'minute': assignment.dueTime.minutes
+                    })
+                    // new Date(Date.UTC(assignment.dueDate.year, assignment.dueDate.month - 1, assignment.dueDate.day, assignment.dueTime.hours, assignment.dueTime.minutes, 0, 0));
                 }
                 var studentSubmissions = await gapi.client.classroom.courses.courseWork.studentSubmissions.list({
                     courseId: id,

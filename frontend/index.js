@@ -2,7 +2,7 @@ import { initializeBlock, useBase, useRecords, Box, useSession } from '@airtable
 import React, { useState } from 'react';
 import { ClassroomSync } from './ClassroomSync';
 import { tableType } from './ClassroomSync';
-const credentials = require('../../../../../credentials.json')
+const credentials = require('./credentials.json')
 
 // Airtable SDK limit: we can only update 50 records at a time. For more details, see
 // https://github.com/Airtable/blocks/blob/master/packages/sdk/docs/guide_writes.md#size-limits--rate-limits
