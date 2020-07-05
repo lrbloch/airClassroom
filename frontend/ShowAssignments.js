@@ -270,7 +270,7 @@ export class ShowAssignments extends React.Component {
               alignItems="center"
               justifyContent="center"
               width="100%">
-              <Heading style={{ textAlign: "center" }}>Today is {moment().format('dddd, MMMM D YYYY')}.<br />
+              <Heading style={{ textAlign: "center" }}>Hello, {this.props.collaborator}. Today is {moment().format('dddd, MMMM D YYYY')}.<br />
               You have {assignsDueToday.length} assignment{assignsDueToday.length>1 || assignsDueToday.length === 0 ?("s"):("")} due today.</Heading>
             </Box>
             <table style={{ width: "100%" }}>

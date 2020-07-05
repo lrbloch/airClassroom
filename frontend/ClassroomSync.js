@@ -873,7 +873,7 @@ export class ClassroomSync extends React.Component {
                                         <div style={{ marginRight: "2%" }}>
                                             <br></br>
                                             <Box>
-                                                {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials} />) : (<></>)}
+                                                {(this.props.assignments != null) ? (<ShowAssignments style={isLoggedIn ? { display: "block" } : { display: "none" }} assignmentRecords={this.props.assignments} materialRecords={this.props.materials} collaborator={this.props.collaborator} />) : (<></>)}
                                             </Box>
                                             <br></br>
                                         </div>

@@ -1,4 +1,4 @@
-import { initializeBlock, useBase, useRecords, Box } from '@airtable/blocks/ui';
+import { initializeBlock, useBase, useRecords, Box, useSession } from '@airtable/blocks/ui';
 import React, { useState } from 'react';
 import { ClassroomSync } from './ClassroomSync';
 import { tableType } from './ClassroomSync';
@@ -33,10 +33,10 @@ function AirClassroomBlock() {
 
     const materialsTable = base.getTableByNameIfExists(tableType.MATERIAL);
     const materials = useRecords(materialsTable);
-
+    const session = useSession();
     return (
         <Box>
-            <ClassroomSync assignmentTable={assignmentTable} assignmentView={assignmentView} setAssignmentView={setAssignmentView} base={base} assignments={assignments} materials={materials} />
+            <ClassroomSync assignmentTable={assignmentTable} assignmentView={assignmentView} setAssignmentView={setAssignmentView} base={base} assignments={assignments} materials={materials} collaborator={session.currentUser.name}/>
         </Box>
 
     );
