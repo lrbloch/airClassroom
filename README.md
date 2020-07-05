@@ -20,8 +20,10 @@ It was difficult to build in the authentication process for Google Classroom's A
 * "Flattening" certain JSON objects into a more exchangeable format (allowing Materials to be of multiple types)
 
 ## What I learned
-* A lot about synchronous and asynchronous events in Javascript (hint: don't forget to "await" asynchronous calls!)
-* 
+* The order of function calls matters a LOT (hint: don't forget to "await" asynchronous calls!)
+* Moment.js is great for comparing and displaying Dates
+* .filter is your friend
+* Modularize and componentize as much as possible! Much of my code relies on reusing the same functions on slightly different datasets.
 
 ## What's next for AirClassroom
 * Allow students to submit assignments from within Block
