@@ -162,6 +162,7 @@ export class ClassroomSync extends React.Component {
 
 
     async syncTableRecords(newRecords, updateRecords, table) {
+        var self = this;
         if (table != null) {
             // Fetches & saves the updates in batches of MAX_RECORDS_PER_UPDATE to stay under size limits.
             if (newRecords?.length > 0) {
@@ -172,8 +173,13 @@ export class ClassroomSync extends React.Component {
                     const createBatch = newRecords.slice(i, i + MAX_RECORDS_PER_UPDATE);
                     // await is used to wait for the update to finish saving to Airtable servers before
                     // continuing. This means we'll stay under the rate limit for writes.
-                    const recordIds = await table.createRecordsAsync(createBatch);
-                    console.debug(`new records created with ID: ${recordIds}`);
+                    try{
+                        const recordIds = await table.createRecordsAsync(createBatch);
+                        console.debug(`new records created with ID: ${recordIds}`);
+                    }
+                    catch{
+                        self.setState({ 'status': 'error' });
+                    }
                     i += MAX_RECORDS_PER_UPDATE;
                 }
             }
@@ -187,7 +193,12 @@ export class ClassroomSync extends React.Component {
                     // await is used to wait for the update to finish saving to Airtable servers before
                     // continuing. This means we'll stay under the rate limit for writes.
                     if (table.hasPermissionToUpdateRecords(updateBatch)) {
-                        await table.updateRecordsAsync(updateBatch);
+                        try{
+                            await table.updateRecordsAsync(updateBatch);
+                        }
+                        catch{
+                            self.setState({ 'status': 'error' });
+                        }
                     }
                     // Record updates have been saved to Airtable servers.
                     j += MAX_RECORDS_PER_UPDATE;
@@ -762,7 +773,29 @@ export class ClassroomSync extends React.Component {
 
         return (
             <Fragment>
-                {this.state.isUpdateInProgress ? (
+                {this.state.status === 'error' ? (
+                <Box
+                    position="absolute"
+                    top="0"
+                    bottom="0"
+                    left="0"
+                    right="0"
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="center"
+                    alignItems="center">
+                    There has been an error syncing with Google Classroom. <br></br>
+                    Please remove all tables from the base and try again. 
+                    <Button
+                        variant="primary"
+                        onClick={this.handleAuthClick}
+                        margin={3}
+                        id="authorize_button"
+                    >Connect With Google Classroom</Button>
+                </Box>) 
+                : (
+                    <Fragment>
+                    {this.state.isUpdateInProgress ? (
                     <Box
                         // center the loading spinner horizontally and vertically.
                         position="absolute"
@@ -777,7 +810,7 @@ export class ClassroomSync extends React.Component {
                     >
                         <Loader />
                     </Box>
-                ) :
+                    ) :
                     (
                         <Fragment>
                             {this.state.isLoggedIn ?
@@ -871,8 +904,8 @@ export class ClassroomSync extends React.Component {
                             }
                         </Fragment>
                     )}
-            </Fragment>
-        );
+                </Fragment> )}
+            </Fragment>)
     }
 }
 
