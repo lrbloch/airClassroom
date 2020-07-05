@@ -134,7 +134,7 @@ export class ClassroomSync extends React.Component {
      */
     async updateSigninStatus(isSignedIn) {
         var self = this;
-        console.debug("isSignedIn!!!!: " + isSignedIn);
+        console.debug("isSignedIn: " + isSignedIn);
         self.setState({ 'isLoggedIn': isSignedIn });
         if(isSignedIn){
             await self.syncWithGoogleClassroom();
