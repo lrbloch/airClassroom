@@ -123,7 +123,6 @@ export class ClassroomSync extends React.Component {
             gapi.auth2.getAuthInstance().isSignedIn.listen(self.updateSigninStatus);
             // Handle the initial sign-in state.
             self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-            self.syncWithGoogleClassroom();
         }, function (error) {
             console.error("error: " + error);
             alert(JSON.stringify(error, null, 2));
@@ -133,16 +132,22 @@ export class ClassroomSync extends React.Component {
      *  Called when the signed in status changes, to update the UI
      *  appropriately. After a sign-in, the API is called.
      */
-    updateSigninStatus(isSignedIn) {
-        console.debug("isSignedIn: " + isSignedIn);
-        this.setState({ 'isLoggedIn': isSignedIn });
+    async updateSigninStatus(isSignedIn) {
+        var self = this;
+        console.debug("isSignedIn!!!!: " + isSignedIn);
+        self.setState({ 'isLoggedIn': isSignedIn });
+        if(isSignedIn){
+            await self.syncWithGoogleClassroom();
+        }
     }
 
     async syncWithGoogleClassroom() {
         // keep track of whether we have up update currently in progress - if there is, we want to hide
         // the update button so you can't have two updates running at once.
+        console.log("sync with google classroom");
         var self = this;
         if (self.state.isLoggedIn) {
+            console.log("logged in: updating");
             self.setState({ 'isUpdateInProgress': true });
             self.getCourses().then(function () {
                 var date = new Date(Date.now());
@@ -760,9 +765,7 @@ export class ClassroomSync extends React.Component {
      */
     handleAuthClick(event) {
         var self = this;
-        gapi.auth2.getAuthInstance().signIn().then(function () {
-            self.setState({ 'isLoggedIn': true });
-        });
+        gapi.auth2.getAuthInstance().signIn();
     }
 
     /**
