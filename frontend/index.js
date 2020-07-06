@@ -1,7 +1,9 @@
-import { initializeBlock, useBase, useRecords, Box, useSession } from '@airtable/blocks/ui';
-import React, { useState } from 'react';
+import { initializeBlock, useBase, useRecords, Box, useSession, useSettingsButton } from '@airtable/blocks/ui';
+import React, { useState, Fragment } from 'react';
 import { ClassroomSync } from './ClassroomSync';
 import { tableType } from './ClassroomSync';
+import SettingsForm from './SettingsForm';
+import { globalConfig } from '@airtable/blocks';
 const credentials = require('./credentials.json')
 
 // Airtable SDK limit: we can only update 50 records at a time. For more details, see
@@ -34,11 +36,38 @@ function AirClassroomBlock() {
     const materialsTable = base.getTableByNameIfExists(tableType.MATERIAL);
     const materials = useRecords(materialsTable);
     const session = useSession();
-    return (
-        <Box>
-            <ClassroomSync assignmentTable={assignmentTable} assignmentView={assignmentView} setAssignmentView={setAssignmentView} base={base} assignments={assignments} materials={materials} collaborator={session.currentUser.name}/>
-        </Box>
+    var clientId = globalConfig.get(['CLIENT_ID']);
+    const [isShowingSettings, setIsShowingSettings] = useState(!clientId);
+    // We are watching the settings here to make sure the settings are still valid for a new game.
+    // If the settings are not valid we will ask the user to update the settings before playing a new game.
+    // This could be because someone else changed the settings or because something in the schema changed.
+    //const {isValid, settings} = useSettings();
+    useSettingsButton(function() {
+        setIsShowingSettings(!isShowingSettings);
+    });
 
+    function updateClientId(newClientId){
+        clientId = newClientId;
+        if (globalConfig.hasPermissionToSet('CLIENT_ID', clientId)) {
+            globalConfig.setAsync('CLIENT_ID', clientId);
+        }
+        else{
+            console.error("Can't set global configs!");
+        }
+        setIsShowingSettings(!isShowingSettings);
+    }
+
+    return (
+        <Fragment>
+            {isShowingSettings ? 
+            (<Box>
+                <SettingsForm onDone={updateClientId} originUrl={location.origin}/>
+            </Box>)
+            :
+            (<Box>
+                <ClassroomSync assignmentTable={assignmentTable} assignmentView={assignmentView} setAssignmentView={setAssignmentView} base={base} assignments={assignments} materials={materials} collaborator={session.currentUser.name}/>
+            </Box>)}
+        </Fragment>
     );
 
 }

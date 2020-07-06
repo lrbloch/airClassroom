@@ -69,6 +69,7 @@ export class ClassroomSync extends React.Component {
         this.syncTopics = this.syncTopics.bind(this);
         this.getTopicNameFromId = this.getTopicNameFromId.bind(this);
         this.getCourseNameFromId = this.getCourseNameFromId.bind(this);
+        this.settingsError = this.settingsError.bind(this);
         // Promise Interface can ensure load the script only once.
         this.gapi_script = this.load_script(GOOGLE_API_ENDPOINT);
     }
@@ -78,8 +79,7 @@ export class ClassroomSync extends React.Component {
         this.gapi_script.then(function () {
             self.setState({ 'status': 'done' });
         }).catch(function (error) {
-            self.setState({ 'status': 'error' });
-            console.error("error: " + error);
+            self.settingsError();
         });
 
     }
@@ -115,7 +115,7 @@ export class ClassroomSync extends React.Component {
     initClient() {
         var self = this;
         gapi.client.init({
-            clientId: CLIENT_ID,
+            clientId: globalConfig.get(['CLIENT_ID']),
             discoveryDocs: DISCOVERY_DOCS,
             scope: SCOPES
         }).then(function () {
@@ -125,7 +125,8 @@ export class ClassroomSync extends React.Component {
             self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
         }, function (error) {
             console.error("error: " + error);
-            alert(JSON.stringify(error, null, 2));
+            //alert(JSON.stringify(error, null, 2));
+            self.settingsError();
         });
     }
     /**
@@ -139,6 +140,12 @@ export class ClassroomSync extends React.Component {
         if(isSignedIn){
             await self.syncWithGoogleClassroom();
         }
+    }
+
+    async settingsError() {
+        var self = this;
+        self.setState({'status': 'error'});
+        self.setState({'errorMessage': "Please make sure you've entered the correct ClientID in Settings and that you've added the URL from Settings as an authorized JavaScript origin. Then return to this page to click the button below."});
     }
 
     async syncWithGoogleClassroom() {
@@ -201,6 +208,7 @@ export class ClassroomSync extends React.Component {
                         catch(e){
                             console.error("error updating records: " + e)
                             self.setState({ 'status': 'error' });
+                            self.setState({'errorMessage': 'Please remove all tables from the base and try again. '});
                         }
                     }
                     // Record updates have been saved to Airtable servers.
@@ -765,7 +773,13 @@ export class ClassroomSync extends React.Component {
      */
     handleAuthClick(event) {
         var self = this;
-        gapi.auth2.getAuthInstance().signIn();
+        try{
+            gapi.auth2.getAuthInstance().signIn();
+        }
+        catch{
+            self.setState({'status':'error'});
+            self.setState({'errorMessage': 'Please try logging in with Google again'})
+        }
     }
 
     /**
@@ -802,7 +816,7 @@ export class ClassroomSync extends React.Component {
                     justifyContent="center"
                     alignItems="center">
                     There has been an error syncing with Google Classroom. <br></br>
-                    Please remove all tables from the base and try again. 
+                    {this.state.errorMessage}
                     <Button
                         variant="primary"
                         onClick={this.handleAuthClick}
