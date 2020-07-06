@@ -10,8 +10,6 @@ const credentials = require('./credentials.json')
 // https://github.com/Airtable/blocks/blob/master/packages/sdk/docs/guide_writes.md#size-limits--rate-limits
 export const MAX_RECORDS_PER_UPDATE = 50;
 export const GOOGLE_API_ENDPOINT = "https://apis.google.com/js/api.js";
-// Client ID from Google Developer Console
-export var CLIENT_ID = credentials.CLIENT_ID;
 
 //   // Array of API discovery doc URLs for APIs used by the quickstart
 export var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/classroom/v1/rest"];
@@ -37,7 +35,7 @@ function AirClassroomBlock() {
     const materials = useRecords(materialsTable);
     const session = useSession();
     var clientId = globalConfig.get(['CLIENT_ID']);
-    const [isShowingSettings, setIsShowingSettings] = useState(clientId.length > 0);
+    const [isShowingSettings, setIsShowingSettings] = useState(clientId);
     // We are watching the settings here to make sure the settings are still valid for a new game.
     // If the settings are not valid we will ask the user to update the settings before playing a new game.
     // This could be because someone else changed the settings or because something in the schema changed.
@@ -47,17 +45,14 @@ function AirClassroomBlock() {
     });
 
     function updateClientId(newClientId){
-        if(newClientId.length > 0)
-        {
-            clientId = newClientId;
-            if (globalConfig.hasPermissionToSet('CLIENT_ID', clientId)) {
-                globalConfig.setAsync('CLIENT_ID', clientId);
-            }
-            else{
-                console.error("Can't set global configs!");
-            }
-            setIsShowingSettings(!isShowingSettings);
+        clientId = newClientId;
+        if (globalConfig.hasPermissionToSet('CLIENT_ID', clientId)) {
+            globalConfig.setAsync('CLIENT_ID', clientId);
         }
+        else{
+            console.error("Can't set global configs!");
+        }
+        setIsShowingSettings(!isShowingSettings);
     }
 
     return (
