@@ -120,7 +120,14 @@ export class ClassroomSync extends React.Component {
             scope: SCOPES
         }).then(function () {
             // Listen for sign-in state changes.
-            gapi.auth2.getAuthInstance().isSignedIn.listen(self.updateSigninStatus);
+            try{
+                gapi.auth2.getAuthInstance().isSignedIn.listen(self.updateSigninStatus);
+            }
+            catch (error){
+                console.error("error: " + error);
+                //alert(JSON.stringify(error, null, 2));
+                self.settingsError();
+            }
             // Handle the initial sign-in state.
             self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
         }, function (error) {
