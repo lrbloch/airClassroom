@@ -37,7 +37,7 @@ function AirClassroomBlock() {
     const materials = useRecords(materialsTable);
     const session = useSession();
     var clientId = globalConfig.get(['CLIENT_ID']);
-    const [isShowingSettings, setIsShowingSettings] = useState(!clientId);
+    const [isShowingSettings, setIsShowingSettings] = useState(clientId.length > 0);
     // We are watching the settings here to make sure the settings are still valid for a new game.
     // If the settings are not valid we will ask the user to update the settings before playing a new game.
     // This could be because someone else changed the settings or because something in the schema changed.
@@ -47,14 +47,17 @@ function AirClassroomBlock() {
     });
 
     function updateClientId(newClientId){
-        clientId = newClientId;
-        if (globalConfig.hasPermissionToSet('CLIENT_ID', clientId)) {
-            globalConfig.setAsync('CLIENT_ID', clientId);
+        if(newClientId.length > 0)
+        {
+            clientId = newClientId;
+            if (globalConfig.hasPermissionToSet('CLIENT_ID', clientId)) {
+                globalConfig.setAsync('CLIENT_ID', clientId);
+            }
+            else{
+                console.error("Can't set global configs!");
+            }
+            setIsShowingSettings(!isShowingSettings);
         }
-        else{
-            console.error("Can't set global configs!");
-        }
-        setIsShowingSettings(!isShowingSettings);
     }
 
     return (
