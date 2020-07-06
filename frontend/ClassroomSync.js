@@ -129,13 +129,13 @@ export class ClassroomSync extends React.Component {
                     console.error("error: " + error);
                     self.settingsError();
                 }
+                // Handle the initial sign-in state.
+                self.updateSigninStatus(authInstance.isSignedIn.get());
             }
             else{
                 console.error("error authenticating with gapi");
                 self.settingsError();
             }
-            // Handle the initial sign-in state.
-            self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
         }, function (error) {
             console.error("error: " + error);
             //alert(JSON.stringify(error, null, 2));
