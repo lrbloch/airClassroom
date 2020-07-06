@@ -2,7 +2,7 @@ import { Loader, Button, Box, ViewPicker, Tooltip } from '@airtable/blocks/ui';
 import React, { Fragment } from 'react';
 import { FieldType } from '@airtable/blocks/models';
 import ShowAssignments from './ShowAssignments';
-import { GOOGLE_API_ENDPOINT, CLIENT_ID, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE } from './index';
+import { GOOGLE_API_ENDPOINT, DISCOVERY_DOCS, SCOPES, MAX_RECORDS_PER_UPDATE } from './index';
 import { globalConfig } from '@airtable/blocks';
 import moment from 'moment';
 moment().format();
@@ -120,12 +120,18 @@ export class ClassroomSync extends React.Component {
             scope: SCOPES
         }).then(function () {
             // Listen for sign-in state changes.
-            try{
-                gapi.auth2.getAuthInstance().isSignedIn.listen(self.updateSigninStatus);
+            var authInstance = gapi.auth2.getAuthInstance();
+            if(authInstance){
+                try{ 
+                    authInstance.isSignedIn.listen(self.updateSigninStatus);
+                }
+                catch (error){
+                    console.error("error: " + error);
+                    self.settingsError();
+                }
             }
-            catch (error){
-                console.error("error: " + error);
-                //alert(JSON.stringify(error, null, 2));
+            else{
+                console.error("error authenticating with gapi");
                 self.settingsError();
             }
             // Handle the initial sign-in state.
