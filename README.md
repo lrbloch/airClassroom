@@ -2,6 +2,8 @@
 
 AirClassroom is an Airtable Block that integrates with Google Classroom for easier management of assignments and course content for students and parents.
 
+![gif of working block](airClassroom.gif)
+
 ## Inspiration
 When working with teachers in New York City public schools, I found that one of the biggest challenges facing students and parents in remote learning was simply understanding what was expected of them each day. All of the public schools in NYC implemented Google Classroom to manage their remote learning during Coronavirus. Within Google Classroom, students and parents can access the work assigned to them, but it is not always clear where to begin, or what to do after finishing one assignment. Additionally, the assignments are grouped by course so there is no easy way to see all assignments across courses.
 
